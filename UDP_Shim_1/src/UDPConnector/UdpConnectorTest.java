@@ -46,11 +46,11 @@ public class UdpConnectorTest {
             
             //pick it up.
             System.out.println("pick it up.");
-            List<byte[]> dataPacketsReceived = connection1.Receive(2000);
+            List<byte[]> dataPacketsReceived = connection1.Receive(20000);
             for(byte[] data : dataPacketsReceived)
             {
                 System.out.print("Received packet: ");
-                System.out.print(data);
+                System.out.print(new String(data));
                 System.out.print("\n");
             }
             System.out.print("Finished.\n");

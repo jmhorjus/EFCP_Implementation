@@ -103,7 +103,6 @@ public class UdpConnector
                             // Buffer full.  Need to define behavior here.
                             // For now just silently drop the packet.
                             ++m_packetsDroppedDueToBufferFull; 
-                            ++m_packetsReady;
                             // Sanity check with some assertions. 
                             assert m_packetsReady == m_receiveBuffer.length;
                             assert m_receiveBufferWriteIndex == m_receiveBufferReadIndex;
@@ -117,6 +116,7 @@ public class UdpConnector
                             System.out.print(new String(recvPacket.getData()) + "\n");
                             m_receiveBufferWriteIndex = 
                                     (m_receiveBufferWriteIndex+1)%m_receiveBuffer.length;
+                            ++m_packetsReady;
                         }
                         // Signal the parent thread (which may be waiting to read)
                         m_receiveBuffer.notify();
@@ -168,7 +168,13 @@ public class UdpConnector
             // If no packets are ready, wait up to maxBlockingTime for a signal.
             if (m_packetsReady == 0 && maxBlockingTimeInMs > 0)
             {
+                System.out.print("waiting on receive...\n");
                 m_receiveBuffer.wait(maxBlockingTimeInMs);
+                System.out.print("done waiting on receive packetsReady=" + m_packetsReady + "\n");
+            }
+            else
+            {
+                System.out.print("NOT waiting. Packetsready=" + m_packetsReady + "\n");
             }
         }
         
@@ -176,6 +182,7 @@ public class UdpConnector
         {
             synchronized(m_receiveBuffer)
             {
+                System.out.print("Receive adding: " + new String(m_receiveBuffer[m_receiveBufferReadIndex]) + "\n");
                 retVal.add(m_receiveBuffer[m_receiveBufferReadIndex]);
                 
                 m_receiveBufferReadIndex = 
