@@ -69,7 +69,7 @@ public class UdpConnectorTest {
         
         UdpConnectionManager connMgr = new UdpConnectionManager();
         
-        connMgr
+       // connMgr.AllocateFlow(lPort, null);
 
     }
     
