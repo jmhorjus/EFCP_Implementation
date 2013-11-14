@@ -41,12 +41,19 @@ public class UdpConnectorTest {
             String packet1 = "first_packet";
             System.out.print("Sending:" + packet1 + "\n"); 
             connection2.Send(packet1);      
-            System.out.print("Sending:" + "gagaga" + "\n"); 
-            connection2.Send("gagaga"); 
+            System.out.print("Sending:" + "packet2" + "\n"); 
+            connection2.Send("packet2"); 
             
             //pick it up.
             System.out.println("pick it up.");
             List<byte[]> dataPacketsReceived = connection1.Receive(20000);
+            for(byte[] data : dataPacketsReceived)
+            {
+                System.out.print("Received packet: ");
+                System.out.print(new String(data));
+                System.out.print("\n");
+            }
+            dataPacketsReceived = connection1.Receive(20000);
             for(byte[] data : dataPacketsReceived)
             {
                 System.out.print("Received packet: ");
@@ -59,7 +66,24 @@ public class UdpConnectorTest {
         {
             System.out.println("Error!");
         }
+        
+        UdpConnectionManager connMgr = new UdpConnectionManager();
+        
+        connMgr
 
     }
+    
+    // Refuse traffic from other sources than our defined partner??
+    // How do I interact with delimiting? Error and flow control apply only to PDU not SDU right?
+    // (I can assume any buffer I'm given will always fit in one udp packet?)
+    // Will I be creating/removing the PDU header or just reading/modifying it? 
+    // Who allocates the space for the header?
+    // What is my interface with regards to PDU headers? 
+    // 
+    // Where exactly will I fit into the existing code? I still don't really know.
+    // What class will instantiate my class?  What are the names of any interfaces
+    // in the existing code that my class should be inheriting?  
+    // 
+    // Draw a system diagram without my code and with my code.
 
 }
