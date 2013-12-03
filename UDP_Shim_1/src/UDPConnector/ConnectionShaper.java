@@ -35,17 +35,20 @@ public class ConnectionShaper implements ConnectorInterface
     {
         m_connectionToShape.SetPeerAddress(peerAddress, port);
     }
-            
+        
+    @Override
     public List<byte[]> Receive(int maxBlockingTimeInMs) throws Exception
     {
         return m_connectionToShape.Receive(maxBlockingTimeInMs);
     }
     
+    @Override
     public boolean Send(String sendString) throws Exception
     {
         return m_connectionToShape.Send(sendString);
     }
     
+    @Override
     public boolean Send(byte[] sendBuffer) throws Exception
     {
         return m_connectionToShape.Send(sendBuffer);
