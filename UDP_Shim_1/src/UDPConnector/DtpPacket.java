@@ -38,9 +38,9 @@ import org.apache.commons.logging.LogFactory;
  * @author Yuefeng Wang and Flavio Esposito. Computer Science Department, Boston University
  *   
  */
-public class DTP {
+public class DtpPacket {
 
-	private Log log = LogFactory.getLog(DTP.class);
+	private Log log = LogFactory.getLog(DtpPacket.class);
 
 	private short destAddr; //2 bytes
 	private short srcAddr;  //2 bytes
@@ -55,7 +55,7 @@ public class DTP {
 
 
 
-	public DTP (short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte qosid, byte pdu_type, 	byte flags, int seqNum, byte[] payload)
+	public DtpPacket (short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte qosid, byte pdu_type, 	byte flags, int seqNum, byte[] payload)
 	{
 		this.destAddr = destAddr;
 		this.srcAddr = srcAddr;
@@ -69,7 +69,7 @@ public class DTP {
 		this.length = 15 + this.payload.length;
 	}
 
-	public DTP ( short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte pdu_type, byte[] payload)
+	public DtpPacket ( short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte pdu_type, byte[] payload)
 	{
 		this.destAddr = destAddr;
 		this.srcAddr = srcAddr;
@@ -84,7 +84,7 @@ public class DTP {
 	}
 	
 	
-	public DTP ( short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte[] payload)
+	public DtpPacket ( short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte[] payload)
 	{
 		this.destAddr = destAddr;
 		this.srcAddr = srcAddr;
@@ -97,7 +97,7 @@ public class DTP {
 		this.length = 15 + this.payload.length;
 	}
 
-	public DTP ( short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte pdu_type)
+	public DtpPacket ( short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte pdu_type)
 	{
 		this.destAddr = destAddr;
 		this.srcAddr = srcAddr;
@@ -114,7 +114,7 @@ public class DTP {
 	 * Construct a DTP message from bytes received, this will be used on the receiving side
 	 * @param bytes
 	 */
-	public DTP(byte[] bytes) {
+	public DtpPacket(byte[] bytes) {
 
 		ByteBuffer buf = ByteBuffer.wrap(bytes, 0, 15);
 
@@ -137,7 +137,7 @@ public class DTP {
 	 * Construct a DTP message from a CDAP message
 	 * @param cdapMessage
 	 */
-//	public DTP(CDAP.CDAPMessage cdapMessage)
+//	public DtpPacket(CDAP.CDAPMessage cdapMessage)
 //	{
 //		this.destAddr = 0;
 //		this.srcAddr = 0;
@@ -158,7 +158,7 @@ public class DTP {
 	 * @param destCEPid
 	 * @param msg
 	 */
-	public DTP(short srcCEPid, short destCEPid, byte[] msg)
+	public DtpPacket(short srcCEPid, short destCEPid, byte[] msg)
 	{
 		this.destAddr = 0;
 		this.srcAddr = 0;
