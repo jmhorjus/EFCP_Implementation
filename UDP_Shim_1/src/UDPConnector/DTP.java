@@ -6,16 +6,13 @@
  * The RINA laboratory of the Computer Science Department at Boston University makes no 
  * representations about the suitability of this software for any purpose. 
  */
+package UDPConnector;
 
-package rina.message;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-
-
 
 /**
 	//PDU types
