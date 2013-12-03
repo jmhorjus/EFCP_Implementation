@@ -137,19 +137,19 @@ public class DTP {
 	 * Construct a DTP message from a CDAP message
 	 * @param cdapMessage
 	 */
-	public DTP(CDAP.CDAPMessage cdapMessage)
-	{
-		this.destAddr = 0;
-		this.srcAddr = 0;
-		this.destCEPid = 0;
-		this.srcCEPid = 0;
-		this.qosid = 0;
-		this.pdu_type = (byte)0xC0;//CDAP
-		this.flags = 0;
-		this.seqNum = 0;
-		this.payload = cdapMessage.toByteArray();
-		this.length = 15 + this.payload.length;
-	}
+//	public DTP(CDAP.CDAPMessage cdapMessage)
+//	{
+//		this.destAddr = 0;
+//		this.srcAddr = 0;
+//		this.destCEPid = 0;
+//		this.srcCEPid = 0;
+//		this.qosid = 0;
+//		this.pdu_type = (byte)0xC0;//CDAP
+//		this.flags = 0;
+//		this.seqNum = 0;
+//		this.payload = cdapMessage.toByteArray();
+//		this.length = 15 + this.payload.length;
+//	}
 
 	/**
 	 * This one is used for BU DIF0 case
@@ -173,8 +173,6 @@ public class DTP {
 	
 	public byte[] toBytes()
 	{
-		byte[] result = null;
-
 		ByteBuffer bbuf = ByteBuffer.allocate(length);
 		bbuf.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -191,27 +189,23 @@ public class DTP {
 			bbuf.put(this.payload);
 		}
 
-		result = bbuf.array();
-
-		return result;
-
+		return bbuf.array();
 	}
 
 
 
 	private byte[] getPayloadFromBytes (byte[] msg) {
 
+		int newLength = msg.length;
 
-		int length = msg.length;
+		byte[] newPayload = new byte[newLength-15]; 
 
-		byte[] payload = new byte[length-15]; 
-
-		for(int i =0; i<length -15; i++)
+		for(int i =0; i<newLength -15; i++)
 		{
-			payload[i] = msg[15+i];
+			newPayload[i] = msg[15+i];
 		}
 
-		return payload;
+		return newPayload;
 	}
 
 	public void printDTPHeader()
