@@ -24,6 +24,7 @@ public class UdpConnectionManager {
         synchronized(this)
         {
             UdpConnector newConn = new UdpConnector(localPort);
+            newConn.SetPeerAddress(destAddr, localPort);
             m_connMap.put(++m_lastHandleValue, newConn);
             return m_lastHandleValue;
         }

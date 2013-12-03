@@ -11,7 +11,7 @@ import java.io.*;
  * connection.  Also keeps its own receive buffer. 
  * @author Jan Horjus
  */
-public class UdpConnector 
+public class UdpConnector implements ConnectorInterface
 {
     public UdpConnector( 
             int portToListenOn

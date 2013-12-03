@@ -28,6 +28,7 @@ public class UdpConnectorTest {
         UdpConnector connection1 = new UdpConnector(1186);
         UdpConnector connection2 = new UdpConnector(1184);
         
+        // Part 1: Test a UdpConnector pair.
         try
         {
             // start listening thread.
@@ -64,12 +65,21 @@ public class UdpConnectorTest {
         }
         catch(Exception e)
         {
-            System.out.println("Error!");
+            System.out.println("Error:" + e.getMessage());
         }
         
-        UdpConnectionManager connMgr = new UdpConnectionManager();
         
-       // connMgr.AllocateFlow(lPort, null);
+        //Part 2: Test the connection manager 
+        try
+        {            
+            UdpConnectionManager connMgr = new UdpConnectionManager();
+            connMgr.AllocateFlow(1181, InetAddress.getLocalHost());
+        }
+        catch(Exception e)
+        {
+            System.out.println("Error:" + e.getMessage());
+        }        
+        
 
     }
     
