@@ -76,7 +76,11 @@ public class UdpConnectorTest {
         try
         {            
             UdpConnectionManager connMgr = new UdpConnectionManager();
-            connMgr.AllocateFlow(1181, InetAddress.getLocalHost());
+            int flow1 = connMgr.AllocateFlow(1181, InetAddress.getLocalHost());
+            int flow2 = connMgr.AllocateFlow(1183, InetAddress.getLocalHost());
+            
+            connMgr.se
+            
         }
         catch(Exception e)
         {

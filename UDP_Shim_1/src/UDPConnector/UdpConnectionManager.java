@@ -9,6 +9,7 @@ package UDPConnector;
 import java.net.*;
 import java.util.*;
 
+
 /**
  *
  * @author Jan
@@ -18,12 +19,12 @@ public class UdpConnectionManager {
     int m_lastHandleValue = 0;
     
     // Returns the index of the
-    public int AllocateFlow(int localPort, InetAddress destAddr)
+    public int AllocateFlow(int localPort, int destPort, InetAddress destAddr)
     {
         synchronized(this)
         {
             UdpConnector newConn = new UdpConnector(localPort);
-            newConn.SetPeerAddress(destAddr, localPort);
+            newConn.SetPeerAddress(destAddr, destPort);
             m_connMap.put(++m_lastHandleValue, newConn);
             return m_lastHandleValue;
         }
