@@ -41,6 +41,7 @@ public class UdpConnector implements ConnectorInterface
         m_portToListenOn = portToListenOn;
         m_receiverThread = null;
     }
+
     
     
     /// Has the peer been identified? 
@@ -62,7 +63,8 @@ public class UdpConnector implements ConnectorInterface
     int m_packetsReady;
    
     /// Pointer to an object which is notified whenever a new packet is received.
-    ConnectorInterface.ReceiveNotifyInterface  m_notifyOnReceive = null;
+    List<ConnectorInterface.ReceiveNotifyInterface>  m_notifyOnReceive = 
+            new ArrayList<>();
     
     /// The thread that listens for incoming packets.
     Thread m_receiverThread;
@@ -127,11 +129,13 @@ public class UdpConnector implements ConnectorInterface
                     
                     // If we have a notifyOnReceive set, then call notify and 
                     // reset the notify pointer to null.
-                    if(m_notifyOnReceive != null)
+                    if(m_notifyOnReceive.size() > 0)
                     {
-                        ConnectorInterface.ReceiveNotifyInterface tempNotifyPtr = m_notifyOnReceive;
-                        m_notifyOnReceive = null;
-                        tempNotifyPtr.Notify(UdpConnector.this);
+                        for(ConnectorInterface.ReceiveNotifyInterface tempNotifyPtr : m_notifyOnReceive)
+                        {
+                            m_notifyOnReceive.remove(tempNotifyPtr);
+                            tempNotifyPtr.Notify(UdpConnector.this);
+                        }
                     }
                     
                 }
@@ -166,9 +170,9 @@ public class UdpConnector implements ConnectorInterface
     /// Only one notification will be issued, then m_notifyOnReceive will be 
     /// cleared.  
     @Override 
-    public void SetReceiveNotify(ReceiveNotifyInterface notifyMe)
+    public boolean AddReceiveNotify(ReceiveNotifyInterface notifyMe)
     {
-        m_notifyOnReceive = notifyMe;
+        return m_notifyOnReceive.add(notifyMe);
     }
     
     /// Non-blocking receive.

@@ -22,7 +22,7 @@ public interface ConnectorInterface {
     public interface ReceiveNotifyInterface {
         public void Notify(ConnectorInterface connection);
     }
-    public void SetReceiveNotify(ReceiveNotifyInterface notifyMe);
+    public boolean AddReceiveNotify(ReceiveNotifyInterface notifyMe);
     
     public void StopReceiveThread();
 }

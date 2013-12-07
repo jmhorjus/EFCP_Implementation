@@ -32,17 +32,27 @@ public class DeltaTConnector implements ConnectorInterface
     @Override
     public boolean Send(String sendString) throws Exception
     {
-        return m_innerConnection.Send(sendString);
+        return Send(sendString.getBytes());
     }
     @Override
     public boolean Send(byte[] sendBuffer) throws Exception
     {
+        // Check the window - do we have room or "credit" to send this packet?
+        
+        // 1.) Wrap the data up in the packet.  Use a packet with DTP and EFCP fields.
+        //  This means giving it a sequence number, etc. 
+        
+        // 2.) Put a copy into the retransmission queue.
+        
+        // 3.) Start the retransmission timer.
+
+        // 4.) Send it!  Yay!     
         return m_innerConnection.Send(sendBuffer);
     }
     @Override
-    public void SetReceiveNotify(ConnectorInterface.ReceiveNotifyInterface notifyMe)
+    public boolean AddReceiveNotify(ConnectorInterface.ReceiveNotifyInterface notifyMe)
     {
-        m_innerConnection.SetReceiveNotify(notifyMe);
+        return m_innerConnection.AddReceiveNotify(notifyMe);
     }
     @Override
     public void StopReceiveThread()

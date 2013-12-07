@@ -23,39 +23,35 @@ public class UdpConnectorTest {
         //System.out.print("String new String(abc.getBytes()):" + new String(abc.getBytes()) + "\n\n" );
         
         
-        
         System.out.println("UdpConnectorTest");
-        UdpConnector connection1 = new UdpConnector(1186);
-        UdpConnector connection2 = new UdpConnector(1184);
         
         // Part 1: Test a UdpConnector pair.
         try
-        {
+        {        
+            UdpConnector connection1 = new UdpConnector(1186);
+            UdpConnector connection2 = new UdpConnector(1184);
             System.out.println("\n\n*** UdpConnectorTest: Section 1  ***");
             // start listening thread.
             System.out.println("start listening thread.");
-            connection1.Receive(2000);
+            connection1.Receive(0);
              
             // send a packet
             System.out.println("send a packet");
             InetAddress localhost = InetAddress.getByName("127.0.0.1");
             connection2.SetPeerAddress(localhost, 1186);
-            String packet1 = "first_packet";
-            System.out.print("Sending:" + packet1 + "\n"); 
-            connection2.Send(packet1);      
-            System.out.print("Sending:" + "packet2" + "\n"); 
+            connection2.Send("first_packet");      
             connection2.Send("packet2"); 
             
             //pick it up.
             System.out.println("pick it up.");
-            List<byte[]> dataPacketsReceived = connection1.Receive(20000);
+            List<byte[]> dataPacketsReceived = connection1.Receive(2000);
             for(byte[] data : dataPacketsReceived)
             {
                 System.out.print("Test 1: Receive 1: ");
                 System.out.print(new String(data));
                 System.out.print("\n");
             }
-            dataPacketsReceived = connection1.Receive(20000);
+            dataPacketsReceived = connection1.Receive(2000);
             for(byte[] data : dataPacketsReceived)
             {
                 System.out.print("Test 1: Receive 2: ");
@@ -68,8 +64,6 @@ public class UdpConnectorTest {
         {
             System.out.println("Test1 Error:" + e.getMessage());
         }
-        connection1.StopReceiveThread();
-        connection2.StopReceiveThread();
         
         
         

@@ -33,7 +33,7 @@ public class ConnectionShaper implements ConnectorInterface
         m_packetsToDropPer10000 = packetsToDropPer10000;
     }
     
-    
+    @Override
     public void SetPeerAddress(
         InetAddress peerAddress, 
         int port)
@@ -50,11 +50,7 @@ public class ConnectionShaper implements ConnectorInterface
     @Override
     public boolean Send(String sendString) throws Exception
     {
-        Thread newSendThread = new Thread(
-                this.new ShapedSendTask(sendString));
-        newSendThread.start();
-        
-        return true;
+        return Send(sendString.getBytes());
     }
     
     @Override
@@ -68,8 +64,8 @@ public class ConnectionShaper implements ConnectorInterface
     }
     
     @Override
-    public void SetReceiveNotify(ReceiveNotifyInterface notifyMe)
-    { m_connectionToShape.SetReceiveNotify(notifyMe); }
+    public boolean AddReceiveNotify(ReceiveNotifyInterface notifyMe)
+    { return m_connectionToShape.AddReceiveNotify(notifyMe); }
     @Override
     public void StopReceiveThread()
     { m_connectionToShape.StopReceiveThread(); }
