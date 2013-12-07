@@ -50,17 +50,33 @@ public class ConnectionShaper implements ConnectorInterface
     @Override
     public boolean Send(String sendString) throws Exception
     {
-        return m_connectionToShape.Send(sendString);
+        Thread newSendThread = new Thread(
+                this.new ShapedSendTask(sendString));
+        newSendThread.start();
+        
+        return true;
     }
     
     @Override
     public boolean Send(byte[] sendBuffer) throws Exception
     {
-        return m_connectionToShape.Send(sendBuffer);
+        Thread newSendThread = new Thread(
+                this.new ShapedSendTask(sendBuffer));
+        newSendThread.start();
+        
+        return true;
     }
     
+    @Override
+    public void SetReceiveNotify(ReceiveNotifyInterface notifyMe)
+    { m_connectionToShape.SetReceiveNotify(notifyMe); }
+    @Override
+    public void StopReceiveThreads()
+    { m_connectionToShape.StopReceiveThreads(); }
     
     
+    /// This inner class is a runnable thread that performs a delayed,
+    /// uncertain send and then terminates.
     private class ShapedSendTask implements Runnable
     {
         String m_stringToSend;
@@ -107,31 +123,8 @@ public class ConnectionShaper implements ConnectorInterface
                             ex.getMessage());
                 }
             }
-        
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+        }
+    }    
     
     
 }
