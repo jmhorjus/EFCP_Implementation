@@ -67,6 +67,9 @@ public class UdpConnectorTest {
         {
             System.out.println("Error:" + e.getMessage());
         }
+        connection1.StopReceiveThreads();
+        connection2.StopReceiveThreads();
+        
         
         
         //Part 2: Test the connection manager 

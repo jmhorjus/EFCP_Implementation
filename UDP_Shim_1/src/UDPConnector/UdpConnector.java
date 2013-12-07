@@ -2,7 +2,6 @@ package UDPConnector;
 
 import java.net.*;
 import java.util.*;
-import java.io.*;
 
 /**
  * Class simulating a socket that can both send and receive.
@@ -61,30 +60,33 @@ public class UdpConnector implements ConnectorInterface
     int m_receiveBufferReadIndex;
     int m_receiveBufferWriteIndex;
     int m_packetsReady;
+   
+    /// Pointer to an object which is notified whenever a new packet is received.
+    ConnectorInterface.ReceiveNotifyInterface  m_notifyOnReceive = null;
     
-    
+    /// The thread that listens for incoming packets.
     Thread m_receiverThread;
-    
+   
     /// Inner class defining a runnable thread with the receive loop.
     /// Contains the receiving DatagramSocket, and writes to the next empty 
     /// place in the receive buffer. 
+    public boolean m_stopReceiveThreads = false;
     class ReceiverThreadTask implements Runnable 
     {
-        public boolean AbortThread = false;
+        boolean exceptionCaught = false;
         int m_packetsDroppedDueToBufferFull = 0;
         
         @Override
         public void run() 
         {
-
-            AbortThread = false;
+            m_stopReceiveThreads = false;
             try 
             {
                 DatagramSocket recvSocket = new DatagramSocket(m_portToListenOn);
                 System.out.print("ReceiverThreadTask started. Listening on ");
                 System.out.print(m_portToListenOn);
                 System.out.print(".\n");
-                while(!AbortThread)
+                while(!m_stopReceiveThreads && !exceptionCaught)
                 {
                     /// This should ensure the packet data is written to the right buffer.
                     DatagramPacket recvPacket = new DatagramPacket(
@@ -121,20 +123,30 @@ public class UdpConnector implements ConnectorInterface
                         // Signal the parent thread (which may be waiting to read)
                         m_receiveBuffer.notify();
                     }
+                    
+                    // If we have a notifyOnReceive set, then call notify and 
+                    // reset the notify pointer to null.
+                    if(m_notifyOnReceive != null)
+                    {
+                        ConnectorInterface.ReceiveNotifyInterface tempNotifyPtr = m_notifyOnReceive;
+                        m_notifyOnReceive = null;
+                        tempNotifyPtr.Notify(UdpConnector.this);
+                    }
+                    
                 }
-                
                 System.out.print("ReceiverThreadTask: Receive thread terminated.\n");
             }
             catch (Exception ex)
             {
-                System.out.print("ReceiverThreadTask: Exception caught!\n");
-                AbortThread = true;
+                System.out.print("\nReceiverThreadTask: Exception caught:\"" + ex.getMessage() + "\"\n\n");
+                exceptionCaught = true;
             }
         }
     }
     
 
     /// Set the peer address and port 
+    @Override
     public void SetPeerAddress(
             InetAddress peerAddress, 
             int port)
@@ -144,11 +156,21 @@ public class UdpConnector implements ConnectorInterface
         m_isPeerSet = true;
     }
     
+    /// Set the object to be notified when the next packet is received.
+    /// Only one notification will be issued, then m_notifyOnReceive will be 
+    /// cleared.  
+    @Override 
+    public void SetReceiveNotify(ReceiveNotifyInterface notifyMe)
+    {
+        m_notifyOnReceive = notifyMe;
+    }
+    
     /// Non-blocking receive.
     /// Returns either a list of available packets or null.
     /// maxBlockingTimeInMs: may be either zero (for non-blocking receive) 
     /// or a positive number of milliseconds - the longest you are willing to 
     /// wait for at least one packet to be available.
+    @Override
     public List<byte[]> Receive(int maxBlockingTimeInMs) throws Exception
     {
         if(m_receiverThread == null)
@@ -161,7 +183,7 @@ public class UdpConnector implements ConnectorInterface
             System.out.println("Thread started...");
         }
         
-        List<byte[]> retVal = new LinkedList<byte[]>(); 
+        List<byte[]> retVal = new LinkedList<>(); 
         
         synchronized(m_receiveBuffer)
         {
@@ -196,11 +218,13 @@ public class UdpConnector implements ConnectorInterface
     
     /// Sending is much easier than Receiving!
     /// Just send it and don't care!
+    @Override
     public boolean Send(String sendString) throws Exception
     {   
         return Send(sendString.getBytes());
     }
     
+    @Override
     public boolean Send(byte[] sendBuffer) throws Exception
     {     
         if (!this.m_isPeerSet)
@@ -217,4 +241,12 @@ public class UdpConnector implements ConnectorInterface
         
         return true;
     }
+    
+    
+    @Override
+    public void StopReceiveThreads()
+    {
+        m_stopReceiveThreads = true;
+    }
+    
 }
