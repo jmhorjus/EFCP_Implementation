@@ -31,6 +31,7 @@ public class UdpConnectorTest {
         // Part 1: Test a UdpConnector pair.
         try
         {
+            System.out.println("\n\n*** UdpConnectorTest: Section 1  ***");
             // start listening thread.
             System.out.println("start listening thread.");
             connection1.Receive(2000);
@@ -50,14 +51,14 @@ public class UdpConnectorTest {
             List<byte[]> dataPacketsReceived = connection1.Receive(20000);
             for(byte[] data : dataPacketsReceived)
             {
-                System.out.print("Received packet: ");
+                System.out.print("Test 1: Receive 1: ");
                 System.out.print(new String(data));
                 System.out.print("\n");
             }
             dataPacketsReceived = connection1.Receive(20000);
             for(byte[] data : dataPacketsReceived)
             {
-                System.out.print("Received packet: ");
+                System.out.print("Test 1: Receive 2: ");
                 System.out.print(new String(data));
                 System.out.print("\n");
             }
@@ -65,26 +66,49 @@ public class UdpConnectorTest {
         }
         catch(Exception e)
         {
-            System.out.println("Error:" + e.getMessage());
+            System.out.println("Test1 Error:" + e.getMessage());
         }
-        connection1.StopReceiveThreads();
-        connection2.StopReceiveThreads();
+        connection1.StopReceiveThread();
+        connection2.StopReceiveThread();
         
         
         
         //Part 2: Test the connection manager 
         try
-        {            
+        {     
+            System.out.println("\n\n*** UdpConnectorTest: Section 2  ***");
             UdpConnectionManager connMgr = new UdpConnectionManager();
-            int flow1 = connMgr.AllocateFlow(1181, InetAddress.getLocalHost());
-            int flow2 = connMgr.AllocateFlow(1183, InetAddress.getLocalHost());
+            int flow1 = connMgr.AllocateFlow(1181, 1183, InetAddress.getLocalHost());
+            int flow2 = connMgr.AllocateFlow(1183, 1181, InetAddress.getLocalHost());
             
-            connMgr.se
+            for (int ii = 0; ii<20; ii++)
+            {
+                System.out.print("Test2 Process Send "+ ii);
+                connMgr.Send(flow1, "Test2_Packet_"+ii+".");
+            }
+            
+            List<byte[]> dataPacketsReceived = connMgr.Receive(flow2);
+            for(byte[] data : dataPacketsReceived)
+            {
+                System.out.print("Test2 Process Receive 1: ");
+                System.out.print(new String(data));
+                System.out.print("\n");
+            }
+            
+            /// First receive may not have been able to pick up all packets (not yet arrived)
+            try {Thread.sleep(1000);} catch(InterruptedException ex) {}
+            dataPacketsReceived = connMgr.Receive(flow2);
+            for(byte[] data : dataPacketsReceived)
+            {
+                System.out.print("Test2 Process Receive 2: ");
+                System.out.print(new String(data));
+                System.out.print("\n");
+            }
             
         }
         catch(Exception e)
         {
-            System.out.println("Error:" + e.getMessage());
+            System.out.println("Test2 Error:" + e.getMessage());
         }        
         
 

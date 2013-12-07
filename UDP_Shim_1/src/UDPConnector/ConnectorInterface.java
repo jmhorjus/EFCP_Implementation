@@ -24,5 +24,5 @@ public interface ConnectorInterface {
     }
     public void SetReceiveNotify(ReceiveNotifyInterface notifyMe);
     
-    public void StopReceiveThreads();
+    public void StopReceiveThread();
 }

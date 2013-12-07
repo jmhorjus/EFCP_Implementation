@@ -67,7 +67,7 @@ public class UdpConnector implements ConnectorInterface
     /// The thread that listens for incoming packets.
     Thread m_receiverThread;
     //TODO: Don't know if this is neccessary or helpful. May remove.
-    public boolean m_stopReceiveThreads = false;
+    boolean m_StopReceiveThread = false;
     
     /// Inner class defining a runnable thread with the receive loop.
     /// Contains the receiving DatagramSocket, and writes to the next empty 
@@ -80,14 +80,14 @@ public class UdpConnector implements ConnectorInterface
         @Override
         public void run() 
         {
-            m_stopReceiveThreads = false;
+            m_StopReceiveThread = false;
             try 
             {
                 DatagramSocket recvSocket = new DatagramSocket(m_portToListenOn);
                 System.out.print("ReceiverThreadTask started. Listening on ");
                 System.out.print(m_portToListenOn);
                 System.out.print(".\n");
-                while(!m_stopReceiveThreads && !exceptionCaught)
+                while(!m_StopReceiveThread && !exceptionCaught)
                 {
                     /// This should ensure the packet data is written to the right buffer.
                     DatagramPacket recvPacket = new DatagramPacket(
@@ -157,17 +157,9 @@ public class UdpConnector implements ConnectorInterface
         m_peerPort = port;
         m_isPeerSet = true;
         
-        this.StopReceiveThreads();
+        this.StopReceiveThread();
         
-        if(m_receiverThread == null)
-        {
-            m_receiverThread = new Thread(
-                    this.new ReceiverThreadTask(), 
-                    "Receiver Thread");
-            System.out.println("Starting thread...");
-            m_receiverThread.start();
-            System.out.println("Thread started...");
-        }       
+        this.StartReceiveThread();
     }
     
     /// Set the object to be notified when the next packet is received.
@@ -187,11 +179,6 @@ public class UdpConnector implements ConnectorInterface
     @Override
     public List<byte[]> Receive(int maxBlockingTimeInMs) throws Exception
     {
-        if(!m_isPeerSet)
-        {
-            throw new Exception("Cannot receive! Peer not set; no port to listen on.");
-        }
-        
         if(m_receiverThread == null)
         {
             m_receiverThread = new Thread(
@@ -247,7 +234,10 @@ public class UdpConnector implements ConnectorInterface
     public boolean Send(byte[] sendBuffer) throws Exception
     {     
         if (!this.m_isPeerSet)
+        {
+            System.out.print("ERROR: Peer not set; cannot send.");
             return false;
+        }
         
         DatagramSocket sendSocket = new DatagramSocket();
         DatagramPacket sendPacket = new DatagramPacket(
@@ -263,7 +253,7 @@ public class UdpConnector implements ConnectorInterface
     
     
     @Override
-    public void StopReceiveThreads()
+    public void StopReceiveThread()
     {
         // This should cause an exception, resulting in the thread closing.
         if (m_receiverThread != null)
@@ -272,7 +262,20 @@ public class UdpConnector implements ConnectorInterface
         }
         
         //TODO: Don't know if this is neccessary or helpful. May remove.
-        m_stopReceiveThreads = true;
+        m_StopReceiveThread = true;
+    }
+    
+    private void StartReceiveThread()
+    {
+        if(m_receiverThread == null)
+        {
+            m_receiverThread = new Thread(
+                    this.new ReceiverThreadTask(), 
+                    "Receiver Thread");
+            System.out.println("Starting thread...");
+            m_receiverThread.start();
+            System.out.println("Thread started...");
+        }   
     }
     
 }

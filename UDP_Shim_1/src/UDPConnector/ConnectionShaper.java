@@ -71,8 +71,8 @@ public class ConnectionShaper implements ConnectorInterface
     public void SetReceiveNotify(ReceiveNotifyInterface notifyMe)
     { m_connectionToShape.SetReceiveNotify(notifyMe); }
     @Override
-    public void StopReceiveThreads()
-    { m_connectionToShape.StopReceiveThreads(); }
+    public void StopReceiveThread()
+    { m_connectionToShape.StopReceiveThread(); }
     
     
     /// This inner class is a runnable thread that performs a delayed,

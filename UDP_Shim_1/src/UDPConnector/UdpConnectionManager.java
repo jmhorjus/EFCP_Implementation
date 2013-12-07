@@ -48,7 +48,17 @@ public class UdpConnectionManager {
         catch(Exception e){
             return false;
         }
-        
+    }
+    public boolean Send(int flowHandle, String data)
+    {
+        UdpConnector conn = (UdpConnector)m_connMap.get(flowHandle);
+        try{
+            return conn.Send(data);
+        }
+        catch(Exception e){
+            System.out.print("ConnectionManager Send: Exception: " + e.getMessage());
+            return false;
+        }
     }
     
     public List<byte[]> Receive(int flowHandle) 

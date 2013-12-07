@@ -6,6 +6,7 @@ package UDPConnector;
 
 import java.net.InetAddress;
 import java.util.List;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /**
  *
@@ -44,11 +45,18 @@ public class DeltaTConnector implements ConnectorInterface
         m_innerConnection.SetReceiveNotify(notifyMe);
     }
     @Override
-    public void StopReceiveThreads()
+    public void StopReceiveThread()
     {
-        m_innerConnection.StopReceiveThreads();
+        m_innerConnection.StopReceiveThread();
     }
     
+    
+    /// Internal state, timers
+    ScheduledThreadPoolExecutor m_timedTaskExecutor;
+    
+    
+    
+
     
     
 }
