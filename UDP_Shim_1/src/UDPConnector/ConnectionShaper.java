@@ -102,11 +102,12 @@ public class ConnectionShaper implements ConnectorInterface
                 else
                     m_connectionToShape.Send(m_stringToSend);
                 }
-                catch{
-                    System.out.print("Shaped send: Exception caught while sending.");
+                catch (Exception ex){
+                    System.out.print("Shaped send: Exception caught while sending." +
+                            ex.getMessage());
                 }
             }
-        }
+        
     }
     
     
