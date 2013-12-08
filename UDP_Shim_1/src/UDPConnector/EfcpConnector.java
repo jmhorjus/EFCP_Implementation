@@ -6,8 +6,12 @@ package UDPConnector;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -41,19 +45,40 @@ public class EfcpConnector implements ConnectorInterface
     public boolean Send(byte[] sendBuffer) throws Exception
     {
         // Check the window - do we have room or "credit" to send this packet?
-        
+        if (m_senderNextSequenceNumber >= m_senderRightWindowEdge)
+        {
+            System.out.print("Efcp Send: Cannot send; send window exhausted.\n");
+            return false;
+        }
         
         // Assuming we have a green light to send, do the following:
         
         // 1.) Wrap the data up in the packet.  Use a packet with DTP and EFCP fields.
         //  This means giving it a sequence number, etc. 
+        DtpPacket packetToSend = new DtpPacket(
+                (short)0, //short destAddr 
+                (short)0, //short srcAddr
+                (short)0, //short destCEPid
+                (short)0, //short srcCEPid, 
+                (byte)0, //byte qosid, 
+                (byte)0, //byte pdu_type, 
+                (byte)0, //byte flags, 
+                m_senderNextSequenceNumber++, //int seqNum
+                sendBuffer //byte[] payload
+                ); 
         
-        // 2.) Put a copy into the retransmission queue.
-        
-        // 3.) Start the retransmission timer.
+        // 2.) Shedule retransmission.
+        ScheduledFuture retransTaskHandle = s_timedTaskExecutor.scheduleAtFixedRate(
+                this.new RetransmitEvent(packetToSend),
+                500, 
+                500, 
+                TimeUnit.MILLISECONDS);
+        // 3.) Put the retransTaskHandle into the retransmission queue, so the 
+        //  retransmit task can be canceled when an ack is received.
+        this.m_senderRetransQueue.put(packetToSend.getSeqNum(), retransTaskHandle);
 
         // 4.) Send it!  Yay!     
-        return m_innerConnection.Send(sendBuffer);
+        return m_innerConnection.Send(packetToSend.toBytes());
     }
     @Override
     public boolean AddReceiveNotify(ConnectorInterface.ReceiveNotifyInterface notifyMe)
@@ -71,12 +96,17 @@ public class EfcpConnector implements ConnectorInterface
     /// Member variables 
     ConnectorInterface m_innerConnection;
     EfcpPolicyInfo m_policyInfo;
+    
     /// The thread pool executor is shared across instances. 
     static ScheduledThreadPoolExecutor s_timedTaskExecutor = 
-            new ScheduledThreadPoolExecutor(8); // one per core on a fast machine
-    /// 
-    List<EfcpPacketInfo> m_senderRetransQueue = new ArrayList<>();
-    ///
+            new ScheduledThreadPoolExecutor(8); // 8 should be plenty
+    
+    /// Variables related to sender state.
+    Map<Integer, ScheduledFuture> m_senderRetransQueue = new HashMap<>();
+    int m_senderNextSequenceNumber = 0; // initial test value
+    int m_senderRightWindowEdge = 100; // initial test value
+    
+    /// Variables related to receiver state.
     List<EfcpPacketInfo> m_receivedPackets = new ArrayList<>();
  
     
@@ -92,8 +122,33 @@ public class EfcpConnector implements ConnectorInterface
         this.m_innerConnection.AddReceiveNotify(this.new PacketReceivedEvent());
     }
     
+    /// The RetransmitEvent implements Runnable
+    class RetransmitEvent implements Runnable
+    {
+        DtpPacket m_packetToRetransmit; 
+        int m_timesRestransmitted = 0; 
+        RetransmitEvent(DtpPacket packetToTransmit)
+        {
+            m_packetToRetransmit = packetToTransmit;
+        }
+        
+        @Override 
+        public void run()
+        {
+            // Just send it - most of the accounting is only done once.
+            try {
+                ++m_timesRestransmitted;
+                m_innerConnection.Send(m_packetToRetransmit.toBytes());
+            }
+            catch(Exception ex) { 
+                System.out.print("RetransmitEvent exception:" + ex.getMessage() + "\n"); 
+            }
+        }
+    }
     
-    ///
+    
+    /// PacketReceivedEvent: Inner class implements notify interface function 
+    /// which is the primary receiving function.
     class PacketReceivedEvent implements ConnectorInterface.ReceiveNotifyInterface
     {
         @Override

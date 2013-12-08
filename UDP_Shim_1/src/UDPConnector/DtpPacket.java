@@ -55,7 +55,7 @@ public class DtpPacket {
 
 
 
-	public DtpPacket (short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte qosid, byte pdu_type, 	byte flags, int seqNum, byte[] payload)
+	public DtpPacket (short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte qosid, byte pdu_type, byte flags, int seqNum, byte[] payload)
 	{
 		this.destAddr = destAddr;
 		this.srcAddr = srcAddr;
