@@ -12,7 +12,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
  *
  * @author jhorjus
  */
-public class DeltaTConnector implements ConnectorInterface
+public class EfcpConnector implements ConnectorInterface
 {
     ConnectorInterface m_innerConnection;
 
@@ -39,6 +39,9 @@ public class DeltaTConnector implements ConnectorInterface
     {
         // Check the window - do we have room or "credit" to send this packet?
         
+        
+        // Assuming we have a green light to send, do the following:
+        
         // 1.) Wrap the data up in the packet.  Use a packet with DTP and EFCP fields.
         //  This means giving it a sequence number, etc. 
         
@@ -60,11 +63,17 @@ public class DeltaTConnector implements ConnectorInterface
         m_innerConnection.StopReceiveThread();
     }
     
-    
-    /// Internal state, timers
-    ScheduledThreadPoolExecutor m_timedTaskExecutor;
+
     
     
+    
+    
+    
+    /// The thread pool executor is shared across instances. 
+    static ScheduledThreadPoolExecutor m_timedTaskExecutor = 
+            new ScheduledThreadPoolExecutor(8); // one per core on a fast machine
+    
+    /// 
     
 
     

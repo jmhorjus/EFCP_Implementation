@@ -8,6 +8,6 @@ package UDPConnector;
  *
  * @author jhorjus
  */
-public class DeltaTConnectorManager {
+public class EfcpConnectorManager {
     
 }

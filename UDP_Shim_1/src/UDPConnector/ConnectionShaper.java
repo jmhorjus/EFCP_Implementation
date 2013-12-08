@@ -96,7 +96,7 @@ public class ConnectionShaper implements ConnectorInterface
         {
             Random r = new Random();
             int jitter = r.nextInt(m_sendJitterInMs);
-            try{
+            try{ 
             sleep(m_sendDelayInMs + jitter);
             }
             catch (Exception ex){
