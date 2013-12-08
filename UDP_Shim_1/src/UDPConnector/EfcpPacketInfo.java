@@ -11,7 +11,7 @@ import java.util.concurrent.ScheduledFuture;
  * @author jhorjus
  */
 public class EfcpPacketInfo 
-{
+{   
     /// The packet object - which serializes and deserializes itself.
     public DtpPacket m_dtpPacket;
     
