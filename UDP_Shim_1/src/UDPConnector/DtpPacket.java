@@ -15,25 +15,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
-	//PDU types
-	#define    PDU_TYPE_EFCP            0x80
-	//DATA - DTP + user data - SDU
-	#define    PDU_TYPE_DATA            0x81
-	//CONTROL - DTCP - PDUs go from 0x82 to 0x8F
-	#define    PDU_TYPE_CONTROL        0x82
-	#define PDU_TYPE_SELECTIVE_ACK    0x84
-	#define PDU_TYPE_NACK            0x86
-	#define PDU_TYPE_FLOW_ONLY        0x89
-	#define PDU_TYPE_ACK_ONLY        0x8C
-	#define PDU_TYPE_FLOW_ACK        0x8D
-
-	//MANAGEMENT PDUs contain CDAP
-	#define    PDU_TYPE_MANAGEMENT        0xC0
-	#define PDU_TYPE_IDENTIFYSENDER 0xC1    
-	// used for PDU to send over TCP connection to identify sender
- **/
-
-/**
  * This is an implementation of DTP message, which defines the header format
  * @author Yuefeng Wang and Flavio Esposito. Computer Science Department, Boston University
  *   

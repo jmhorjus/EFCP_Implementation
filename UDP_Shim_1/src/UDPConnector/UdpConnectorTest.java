@@ -77,26 +77,22 @@ public class UdpConnectorTest {
             
             for (int ii = 0; ii<20; ii++)
             {
-                System.out.print("Test2 Process Send "+ ii);
+                System.out.print("Test2 Process Send "+ ii +".\n");
                 connMgr.Send(flow1, "Test2_Packet_"+ii+".");
             }
             
             List<byte[]> dataPacketsReceived = connMgr.Receive(flow2);
             for(byte[] data : dataPacketsReceived)
             {
-                System.out.print("Test2 Process Receive 1: ");
-                System.out.print(new String(data));
-                System.out.print("\n");
+                System.out.print("Test2 Process Receive 1: " + new String(data) + "\n");
             }
             
             /// First receive may not have been able to pick up all packets (not yet arrived)
-            try {Thread.sleep(1000);} catch(InterruptedException ex) {}
+            try {Thread.sleep(10000);} catch(InterruptedException ex) {}
             dataPacketsReceived = connMgr.Receive(flow2);
             for(byte[] data : dataPacketsReceived)
             {
-                System.out.print("Test2 Process Receive 2: ");
-                System.out.print(new String(data));
-                System.out.print("\n");
+                System.out.print("Test2 Process Receive 2: " + new String(data) + "\n");
             }
             
         }
