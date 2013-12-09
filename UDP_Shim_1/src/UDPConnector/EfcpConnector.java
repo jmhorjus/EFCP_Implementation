@@ -28,13 +28,19 @@ public class EfcpConnector implements ConnectorInterface
         m_innerConnection.SetPeerAddress(peerAddress, port);
     }
     @Override
-    public List<byte[]> Receive(int maxBlockingTimeInMs) throws Exception
+    public List<byte[]> Receive(int maxBlockingTimeInMs)
     {
         // This is for delivering data up to...delimiting, I think. It needs 
-        // to deliver a list of the buffers from the DtpPacket objects. 
+        // to deliver a list of the buffers from the DtpPacket objects.         
+        List<byte[]> retVal = new ArrayList<>();
         
+        synchronized(m_receiverPacketsReady)
+        {    
+            retVal.addAll(m_receiverPacketsReady);
+            m_receiverPacketsReady.clear();
+        }
         
-        return m_innerConnection.Receive(maxBlockingTimeInMs);
+        return retVal;
     }
     @Override
     public boolean Send(String sendString) throws Exception
@@ -108,8 +114,8 @@ public class EfcpConnector implements ConnectorInterface
     int m_senderRightWindowEdge = 100; // initial test value
     
     /// Variables related to receiver state.
-    List<DtpPacket> m_receiverPacketsReady = new ArrayList<>();
-    Map<Integer, DtpPacket> m_receiverPacketsOutOfOrder = new HashMap<>();
+    final List<byte[]> m_receiverPacketsReady = new ArrayList<>();
+    Map<Integer, byte[]> m_receiverPacketsOutOfOrder = new HashMap<>();
     int m_receiverNextPacketToDeliver = 0; // initial test value
     int m_receiverRightWindowEdge = 100; // initial test value
  
@@ -178,10 +184,12 @@ public class EfcpConnector implements ConnectorInterface
                 // things for other packets if this one filled a gap. 
                 if (packet.getSeqNum() == m_receiverNextPacketToDeliver)
                 {
-                    m_receiverPacketsReady.add(packet);
+                    synchronized(m_receiverPacketsReady)
+                    {
+                    m_receiverPacketsReady.add(packet.toBytes());
                     ++m_receiverNextPacketToDeliver;
                     
-                    // Check the out of order packets for any next packets.
+                    // Check the out-of-order packets for any next packets.
                     while (m_receiverPacketsOutOfOrder.containsKey(m_receiverNextPacketToDeliver))
                     {
                         // Move the packet from the out of order list to the ready list
@@ -190,6 +198,7 @@ public class EfcpConnector implements ConnectorInterface
                                 m_receiverPacketsOutOfOrder.get(m_receiverNextPacketToDeliver));
                         m_receiverPacketsOutOfOrder.remove(m_receiverNextPacketToDeliver);                        
                         ++m_receiverNextPacketToDeliver;
+                    }
                     }
                     
                     // Send an ack back to the sender.
@@ -213,10 +222,13 @@ public class EfcpConnector implements ConnectorInterface
                     }
                 }
                 // 3.) If its an out of order packet we save it for later, but only 
-                // ack if selective acks are enabled.  
+                // ack if selective acks are enabled. We may nack the next expected
+                // packet in this case also, depending on policy.
                 else
                 {
+                    m_receiverPacketsOutOfOrder.put(packet.getSeqNum(), packet.toBytes());
                     
+                    //TODO: Sellective ack logic and nack logic.
                 }
             }
             

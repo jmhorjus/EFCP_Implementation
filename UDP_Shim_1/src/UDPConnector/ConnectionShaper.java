@@ -42,7 +42,7 @@ public class ConnectionShaper implements ConnectorInterface
     }
         
     @Override
-    public List<byte[]> Receive(int maxBlockingTimeInMs) throws Exception
+    public List<byte[]> Receive(int maxBlockingTimeInMs)
     {
         return m_connectionToShape.Receive(maxBlockingTimeInMs);
     }

@@ -9,13 +9,13 @@ package UDPConnector;
 import java.net.*;
 import java.util.*;
 
-
 /**
  *
  * @author Jan
  */
-public class UdpConnectionManager {
-    HashMap m_connMap = new HashMap();
+public class UdpConnectionManager 
+{
+    Map<Integer, UdpConnector> m_connMap = new HashMap<>();
     int m_lastHandleValue = 0;
     
     // Returns the index of the
@@ -25,7 +25,7 @@ public class UdpConnectionManager {
         {
             UdpConnector newConn = new UdpConnector(localPort);
             newConn.SetPeerAddress(destAddr, destPort);
-            newConn.Receive(1); // Start the receiving thread.
+            newConn.Receive(5); // Start the receiving thread; give it 5ms to get scheduled for the first time.
             m_connMap.put(++m_lastHandleValue, newConn);
             System.out.print("Endpoint Allocated: Handle:"+m_lastHandleValue+" Listening port:"+localPort+"\n");
             return m_lastHandleValue;
@@ -36,6 +36,8 @@ public class UdpConnectionManager {
     {
         synchronized(this)
         {
+            UdpConnector conn = m_connMap.get(flowHandle);
+            conn.StopReceiveThread();
             m_connMap.remove(flowHandle);
             return true;
         }
@@ -43,7 +45,7 @@ public class UdpConnectionManager {
     
     public boolean Send(int flowHandle, byte[] data)
     {
-        UdpConnector conn = (UdpConnector)m_connMap.get(flowHandle);
+        UdpConnector conn = m_connMap.get(flowHandle);
         try{
             return conn.Send(data);
         }
@@ -53,7 +55,7 @@ public class UdpConnectionManager {
     }
     public boolean Send(int flowHandle, String data)
     {
-        UdpConnector conn = (UdpConnector)m_connMap.get(flowHandle);
+        UdpConnector conn = m_connMap.get(flowHandle);
         try{
             return conn.Send(data);
         }
@@ -65,18 +67,9 @@ public class UdpConnectionManager {
     
     public List<byte[]> Receive(int flowHandle) 
     {
-        UdpConnector conn = (UdpConnector)m_connMap.get(flowHandle);
+        UdpConnector conn = m_connMap.get(flowHandle);
         
-        try{
-            return conn.Receive(0 /*no blocking*/ );
-        }
-        catch(Exception e) {
-            return new ArrayList<byte[]>();
-        }
+        return conn.Receive(0 /*no blocking*/ );
     }
-    
-    
-    
-    
     
 }

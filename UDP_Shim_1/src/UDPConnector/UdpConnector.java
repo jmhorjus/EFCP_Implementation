@@ -68,6 +68,7 @@ public class UdpConnector implements ConnectorInterface
     
     /// The thread that listens for incoming packets.
     Thread m_receiverThread;
+    DatagramSocket m_recvSocket;
     //TODO: Don't know if this is neccessary or helpful. May remove.
     boolean m_StopReceiveThread = false;
     
@@ -85,7 +86,7 @@ public class UdpConnector implements ConnectorInterface
             m_StopReceiveThread = false;
             try 
             {
-                DatagramSocket recvSocket = new DatagramSocket(m_portToListenOn);
+                m_recvSocket = new DatagramSocket(m_portToListenOn);
                 System.out.print("ReceiverThreadTask started. Listening on " + m_portToListenOn + ".\n");
                 while(!m_StopReceiveThread && !exceptionCaught)
                 {
@@ -95,7 +96,7 @@ public class UdpConnector implements ConnectorInterface
                             m_receiveBuffer[m_receiveBufferWriteIndex].length);
                     
                     // This should be a blocking receive. 
-                    recvSocket.receive(recvPacket);
+                    m_recvSocket.receive(recvPacket);
                     
                     //System.out.print("ReceiverThreadTask: Packet received.\n");
                     synchronized(m_receiveBuffer)
@@ -114,8 +115,9 @@ public class UdpConnector implements ConnectorInterface
                         {
                             // We have room for this packet. Increment the
                             // write index.
-                            System.out.print("ReceiverThreadTask: buffer:" + m_receiveBufferWriteIndex 
-                                    + " data:" +new String(recvPacket.getData()) + "\n");
+                            System.out.print("ReceiverThreadTask port:" + m_portToListenOn
+                                    + " buffer:" + m_receiveBufferWriteIndex 
+                                    + " data:" + new String(recvPacket.getData()) + "\n");
 
                             m_receiveBufferWriteIndex = 
                                     (m_receiveBufferWriteIndex+1)%m_receiveBuffer.length;
@@ -141,7 +143,7 @@ public class UdpConnector implements ConnectorInterface
             }
             catch (Exception ex)
             {
-                System.out.print("\nReceiverThreadTask: Exception caught:\"" + ex.getMessage() + "\"\n\n");
+                System.out.print("ReceiverThreadTask: Exception caught:\"" + ex.getMessage() + "\"\n");
                 exceptionCaught = true;
             }
         }
@@ -261,15 +263,24 @@ public class UdpConnector implements ConnectorInterface
     @Override
     public void StopReceiveThread()
     {
+        //TODO: Don't know if this is neccessary or helpful. May remove.
+        m_StopReceiveThread = true;
+
         // This should cause an exception, resulting in the thread closing.
         if (m_receiverThread != null)
         { 
+            m_recvSocket.close();
             m_receiverThread.interrupt(); 
+            // Try and 
+            try {
+                m_receiverThread.join(1000);
+            } catch (Exception ex) { 
+                System.out.print("Exception in thread.join: "+ex.getMessage()+"\n");
+            } 
+            System.out.print("Stopped Receive Thread\n");
         }
-        
-        //TODO: Don't know if this is neccessary or helpful. May remove.
-        m_StopReceiveThread = true;
     }
+
     
     private void StartReceiveThread()
     {
@@ -278,9 +289,8 @@ public class UdpConnector implements ConnectorInterface
             m_receiverThread = new Thread(
                     this.new ReceiverThreadTask(), 
                     "Receiver Thread");
-            System.out.println("Starting thread...");
             m_receiverThread.start();
-            System.out.println("Thread started...");
+            //System.out.println("ReceiveThread created.");
         }   
     }
     
