@@ -83,8 +83,8 @@ public class EfcpConnector implements ConnectorInterface
         // 2.) Shedule retransmission.
         ScheduledFuture retransTaskHandle = s_timedTaskExecutor.scheduleAtFixedRate(
                 this.new RetransmitEvent(packetToSend), // Runnable task
-                500, // int initialDelay
-                500, // int period
+                1200, // int initialDelay
+                1200, // int period
                 TimeUnit.MILLISECONDS // TimeUnit 
                 );
         // 3.) Put the retransTaskHandle into the retransmission queue, so the 
@@ -118,7 +118,7 @@ public class EfcpConnector implements ConnectorInterface
     
     /// Variables related to sender state.
     Map<Integer, ScheduledFuture> m_senderRetransmitQueue = new HashMap<>();
-    int m_senderLastPacketAcked = 0;
+    int m_senderLastPacketAcked = -1;
     int m_senderNextSequenceNumber = 0; // initial test value
     int m_senderRightWindowEdge = 100; // initial test value
     
@@ -226,30 +226,17 @@ public class EfcpConnector implements ConnectorInterface
                                 m_receiverPacketsReady.notify();
                             }
 
-                            // Send an ack back to the sender.
-                            DtpPacket ackToSend = new DtpPacket(
-                                    (short)0, //short destAddr 
-                                    (short)0, //short srcAddr
-                                    (short)0, //short destCEPid
-                                    (short)0, //short srcCEPid, 
-                                    (byte)0,  //byte qosid, 
-                                    EfcpConsts.PDU_TYPE_ACK_ONLY, //byte pdu_type, 
-                                    (byte)0,  //byte flags, 
-                                    packet.getSeqNum(), //int seqNum
-                                    "".getBytes() //byte[] payload
-                                    ); 
-
-                            try {
-                            m_innerConnection.Send(ackToSend.toBytes());
-                            }
-                            catch(Exception ex) { 
-                                System.out.print("Exception Sending Ack:" + ex.getMessage() + "\n"); 
-                            }
+                            SendAck();
                         }
                         // 3.) If its an out of order packet we save it for later, but only 
                         // ack if selective acks are enabled. We may nack the next expected
                         // packet in this case also, depending on policy.
-                        else
+                        else if (packet.getSeqNum() < m_receiverNextPacketToDeliver)
+                        { // We already have this packet; resend the 
+                            System.out.print("Received duplicate packet "+packet.getSeqNum()+":"+new String(packet.getPayload())+"\n");
+                            SendAck();
+                        }
+                        else // packet.getSeqNum() > m_receiverNextPacketToDeliver, so there's a gap.
                         {
                             m_receiverPacketsOutOfOrder.put(packet.getSeqNum(), packet.getPayload());
 
@@ -261,7 +248,7 @@ public class EfcpConnector implements ConnectorInterface
                     {
                         System.out.print("Efcp: Ack Received: seq="+packet.getSeqNum()+"\n");
                         if (m_senderLastPacketAcked >= packet.getSeqNum()) {
-                            System.out.print("Ignoring redundant Ack.\n");
+                            System.out.print("Ignoring redundant Ack. lastAck="+m_senderLastPacketAcked+"\n");
                             break;
                         }
                         //1.) Cancel all retransmission events for packets with 
@@ -282,7 +269,34 @@ public class EfcpConnector implements ConnectorInterface
             // be notified of future receives.  
             m_innerConnection.AddReceiveNotify(this);
         }
+        
+        
+        void SendAck()
+        {
+            // Send an ack back to the sender.
+            DtpPacket ackToSend = new DtpPacket(
+                    (short)0, //short destAddr 
+                    (short)0, //short srcAddr
+                    (short)0, //short destCEPid
+                    (short)0, //short srcCEPid, 
+                    (byte)0,  //byte qosid, 
+                    EfcpConsts.PDU_TYPE_ACK_ONLY, //byte pdu_type, 
+                    (byte)0,  //byte flags, 
+                    m_receiverNextPacketToDeliver-1, //int seqNum
+                    "ACK".getBytes() //byte[] payload
+                    ); 
+
+            try {
+                m_innerConnection.Send(ackToSend.toBytes());
+                System.out.print("Efcp Sending Ack:" + (m_receiverNextPacketToDeliver-1) + "\n"); 
+            }
+            catch(Exception ex) { 
+                System.out.print("Exception Sending Ack:" + ex.getMessage() + "\n"); 
+            }
+        }
+        
     }
 
+    
     
 }

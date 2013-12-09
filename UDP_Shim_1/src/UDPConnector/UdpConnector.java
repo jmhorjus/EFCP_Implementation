@@ -158,13 +158,14 @@ public class UdpConnector implements ConnectorInterface
             InetAddress peerAddress, 
             int port)
     {
+        if (m_isPeerSet)
+            StopReceiveThread();
+        
         m_peerAddress = peerAddress;
         m_peerPort = port;
         m_isPeerSet = true;
         
-        this.StopReceiveThread();
-        
-        this.StartReceiveThread();
+        StartReceiveThread();
     }
     
     /// Set the object to be notified when the next packet is received.
@@ -238,6 +239,7 @@ public class UdpConnector implements ConnectorInterface
     @Override
     public boolean Send(byte[] sendBuffer) throws Exception
     {     
+        //System.out.print("UdpConnection.Send: Enter.  buf="+ new String(sendBuffer) +" destPort="+ m_peerPort +".\n");
         if (!this.m_isPeerSet)
         {
             System.out.print("ERROR: Peer not set; cannot send.");

@@ -184,6 +184,7 @@ public class UdpConnectorTest {
                     ),
                     new EfcpPolicyInfo()
                     );
+            efcpConn2.SetPeerAddress(InetAddress.getLocalHost(), 1188);
             
             for (int ii = 0; ii<20; ii++)
             {
