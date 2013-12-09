@@ -15,15 +15,8 @@ public class UdpConnectorTest {
 
     public static void main(String [ ] args)
     {
-        //System.out.print("Sanity Test:\n");
-        //String abc = "abc";
-        //System.out.print("String abc:" + abc + "\n");
-        //System.out.print("String abc.getBytes():" + abc.getBytes() + "\n" );
-        //System.out.print("String abc.getBytes().toString():" + abc.getBytes().toString() + "\n" );
-        //System.out.print("String new String(abc.getBytes()):" + new String(abc.getBytes()) + "\n\n" );
-        
-        
-        System.out.println("UdpConnectorTest");
+         
+        System.out.println("** UdpConnector and EfcpConnector Test ** ");
         
         // Part 1: Test a UdpConnector pair.
         try
@@ -233,7 +226,8 @@ public class UdpConnectorTest {
                 }
             }
             
-            
+            // Let these threads remain running - make sure there's no unfinished
+            // cleanup or unresolved state that might cause continued activity.
             //efcpConn1.StopReceiveThread();
             //efcpConn2.StopReceiveThread();
         }
@@ -243,18 +237,5 @@ public class UdpConnectorTest {
         }   
 
     }
-    
-    // Refuse traffic from other sources than our defined partner??
-    // How do I interact with delimiting? Error and flow control apply only to PDU not SDU right?
-    // (I can assume any buffer I'm given will always fit in one udp packet?)
-    // Will I be creating/removing the PDU header or just reading/modifying it? 
-    // Who allocates the space for the header?
-    // What is my interface with regards to PDU headers? 
-    // 
-    // Where exactly will I fit into the existing code? I still don't really know.
-    // What class will instantiate my class?  What are the names of any interfaces
-    // in the existing code that my class should be inheriting?  
-    // 
-    // Draw a system diagram without my code and with my code.
-
+ 
 }
