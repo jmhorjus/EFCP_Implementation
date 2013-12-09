@@ -74,6 +74,7 @@ public class UdpConnectorTest {
             UdpConnectionManager connMgr = new UdpConnectionManager();
             int flow1 = connMgr.AllocateFlow(1181, 1183, InetAddress.getLocalHost());
             int flow2 = connMgr.AllocateFlow(1183, 1181, InetAddress.getLocalHost());
+
             
             for (int ii = 0; ii<20; ii++)
             {
@@ -88,7 +89,7 @@ public class UdpConnectorTest {
             }
             
             /// First receive may not have been able to pick up all packets (not yet arrived)
-            try {Thread.sleep(10000);} catch(InterruptedException ex) {}
+            try {Thread.sleep(1000);} catch(InterruptedException ex) {}
             dataPacketsReceived = connMgr.Receive(flow2);
             for(byte[] data : dataPacketsReceived)
             {

@@ -109,7 +109,7 @@ public class EfcpConnector implements ConnectorInterface
     
     /// Variables related to receiver state.
     List<DtpPacket> m_receiverPacketsReady = new ArrayList<>();
-    List<DtpPacket> m_receiverPacketsOutOfOrder = new ArrayList<>();
+    Map<Integer, DtpPacket> m_receiverPacketsOutOfOrder = new HashMap<>();
     int m_receiverNextPacketToDeliver = 0; // initial test value
     int m_receiverRightWindowEdge = 100; // initial test value
  
@@ -181,6 +181,17 @@ public class EfcpConnector implements ConnectorInterface
                     m_receiverPacketsReady.add(packet);
                     ++m_receiverNextPacketToDeliver;
                     
+                    // Check the out of order packets for any next packets.
+                    while (m_receiverPacketsOutOfOrder.containsKey(m_receiverNextPacketToDeliver))
+                    {
+                        // Move the packet from the out of order list to the ready list
+                        // and increment m_receiverNextPacketToDeliver.
+                        m_receiverPacketsReady.add(
+                                m_receiverPacketsOutOfOrder.get(m_receiverNextPacketToDeliver));
+                        m_receiverPacketsOutOfOrder.remove(m_receiverNextPacketToDeliver);                        
+                        ++m_receiverNextPacketToDeliver;
+                    }
+                    
                     // Send an ack back to the sender.
                     DtpPacket ackToSend = new DtpPacket(
                             (short)0, //short destAddr 
@@ -193,6 +204,7 @@ public class EfcpConnector implements ConnectorInterface
                             packet.getSeqNum(), //int seqNum
                             "".getBytes() //byte[] payload
                             ); 
+                    
                     try {
                     m_innerConnection.Send(ackToSend.toBytes());
                     }
@@ -200,9 +212,12 @@ public class EfcpConnector implements ConnectorInterface
                         System.out.print("Exception Sending Ack:" + ex.getMessage() + "\n"); 
                     }
                 }
-            
                 // 3.) If its an out of order packet we save it for later, but only 
                 // ack if selective acks are enabled.  
+                else
+                {
+                    
+                }
             }
             
             // 3.) Add ourselves back onto the inner connections notify list, so we'll

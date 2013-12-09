@@ -86,9 +86,7 @@ public class UdpConnector implements ConnectorInterface
             try 
             {
                 DatagramSocket recvSocket = new DatagramSocket(m_portToListenOn);
-                System.out.print("ReceiverThreadTask started. Listening on ");
-                System.out.print(m_portToListenOn);
-                System.out.print(".\n");
+                System.out.print("ReceiverThreadTask started. Listening on " + m_portToListenOn + ".\n");
                 while(!m_StopReceiveThread && !exceptionCaught)
                 {
                     /// This should ensure the packet data is written to the right buffer.
@@ -99,7 +97,7 @@ public class UdpConnector implements ConnectorInterface
                     // This should be a blocking receive. 
                     recvSocket.receive(recvPacket);
                     
-                    System.out.print("ReceiverThreadTask: Packet received.\n");
+                    //System.out.print("ReceiverThreadTask: Packet received.\n");
                     synchronized(m_receiveBuffer)
                     {   
                         // Make sure there is room in the packet buffer.
@@ -116,9 +114,9 @@ public class UdpConnector implements ConnectorInterface
                         {
                             // We have room for this packet. Increment the
                             // write index.
-                            System.out.print("ReceiverThreadTask: buffer: ");
-                            System.out.print(m_receiveBufferWriteIndex + " data: ");
-                            System.out.print(new String(recvPacket.getData()) + "\n");
+                            System.out.print("ReceiverThreadTask: buffer:" + m_receiveBufferWriteIndex 
+                                    + " data:" +new String(recvPacket.getData()) + "\n");
+
                             m_receiveBufferWriteIndex = 
                                     (m_receiveBufferWriteIndex+1)%m_receiveBuffer.length;
                             ++m_packetsReady;
@@ -181,7 +179,7 @@ public class UdpConnector implements ConnectorInterface
     /// or a positive number of milliseconds - the longest you are willing to 
     /// wait for at least one packet to be available.
     @Override
-    public List<byte[]> Receive(int maxBlockingTimeInMs) throws Exception
+    public List<byte[]> Receive(int maxBlockingTimeInMs)
     {
         if(m_receiverThread == null)
         {
@@ -201,7 +199,11 @@ public class UdpConnector implements ConnectorInterface
             if (m_packetsReady == 0 && maxBlockingTimeInMs > 0)
             {
                 System.out.print("waiting on receive...\n");
-                m_receiveBuffer.wait(maxBlockingTimeInMs);
+                try {
+                    m_receiveBuffer.wait(maxBlockingTimeInMs);
+                } catch (Exception ex) { 
+                    System.out.print("**ERROR** Exception waiting for next packet in Receive: \""+ex.getMessage()+"\"\n");
+                }
                 System.out.print("done waiting on receive packetsReady=" + m_packetsReady + "\n");
             }
             else

@@ -15,7 +15,7 @@ public interface ConnectorInterface {
     public void SetPeerAddress(
             InetAddress peerAddress, 
             int port);
-    public List<byte[]> Receive(int maxBlockingTimeInMs) throws Exception;
+    public List<byte[]> Receive(int maxBlockingTimeInMs);
     public boolean Send(String sendString) throws Exception;
     public boolean Send(byte[] sendBuffer) throws Exception;
     

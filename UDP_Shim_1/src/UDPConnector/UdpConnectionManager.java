@@ -25,7 +25,9 @@ public class UdpConnectionManager {
         {
             UdpConnector newConn = new UdpConnector(localPort);
             newConn.SetPeerAddress(destAddr, destPort);
+            newConn.Receive(1); // Start the receiving thread.
             m_connMap.put(++m_lastHandleValue, newConn);
+            System.out.print("Endpoint Allocated: Handle:"+m_lastHandleValue+" Listening port:"+localPort+"\n");
             return m_lastHandleValue;
         }
     }
