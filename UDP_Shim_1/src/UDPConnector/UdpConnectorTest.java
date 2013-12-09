@@ -32,7 +32,7 @@ public class UdpConnectorTest {
             UdpConnector connection2 = new UdpConnector(1182);
             System.out.println("\n\n*** UdpConnectorTest: Section 1  ***");
             // start listening thread.
-            connection1.Receive(0);
+            connection1.StartReceiveThread();
              
             // send a packet
             System.out.println("send 2 packets...");
@@ -125,7 +125,7 @@ public class UdpConnectorTest {
                     300, // up to 300ms additional random delay (jitter).
                     3333 // 33% packet loss
                     );
-            shapedConn2.Receive(10);
+            shapedConn2.StartReceiveThread();
             
             for (int ii = 0; ii<20; ii++)
             {
@@ -166,18 +166,6 @@ public class UdpConnectorTest {
             
             EfcpConnector efcpConn1 = new EfcpConnector( 
                     new ConnectionShaper(
-                        new UdpConnector(1187),
-                        600, // 600ms min delay
-                        300, // up to 300ms additional random delay (jitter).
-                        3333 // 33% packet loss
-                    ),
-                    new EfcpPolicyInfo()
-                    );
-                    
-            efcpConn1.SetPeerAddress(InetAddress.getLocalHost(), 1188);
-            
-            EfcpConnector efcpConn2 = new EfcpConnector( 
-                    new ConnectionShaper(
                         new UdpConnector(1188),
                         600, // 600ms min delay
                         300, // up to 300ms additional random delay (jitter).
@@ -185,7 +173,17 @@ public class UdpConnectorTest {
                     ),
                     new EfcpPolicyInfo()
                     );
-            efcpConn2.Receive(10);
+            efcpConn1.SetPeerAddress(InetAddress.getLocalHost(), 1189);
+            
+            EfcpConnector efcpConn2 = new EfcpConnector( 
+                    new ConnectionShaper(
+                        new UdpConnector(1189),
+                        600, // 600ms min delay
+                        300, // up to 300ms additional random delay (jitter).
+                        3333 // 33% packet loss
+                    ),
+                    new EfcpPolicyInfo()
+                    );
             
             for (int ii = 0; ii<20; ii++)
             {
@@ -208,7 +206,7 @@ public class UdpConnectorTest {
             int receivesTried = 1;
             while(packetsReveived<19)
             {
-                System.out.print("Test 4 Process Receive "+ ++receivesTried +": Should get only in-order packets, though not neccessarily all.\n");
+                System.out.print("Test 4 Process Receive "+ ++receivesTried +": Should get only in-order packets.\n");
                 dataPacketsReceived = efcpConn2.Receive(1000);
                 for(byte[] data : dataPacketsReceived)
                 {
@@ -217,8 +215,26 @@ public class UdpConnectorTest {
                 }
             }
             
-            efcpConn1.StopReceiveThread();
-            efcpConn2.StopReceiveThread();
+            // Try some more. 
+            for (int ii = 20; ii<30; ii++)
+            {
+                System.out.print("Test4 Process Send "+ ii +".\n");
+                efcpConn1.Send("Test4_Packet_"+ii+".");
+            }
+            while(packetsReveived<29)
+            {
+                System.out.print("Test 4 Process Receive "+ ++receivesTried +": Should get only in-order packets.\n");
+                dataPacketsReceived = efcpConn2.Receive(1000);
+                for(byte[] data : dataPacketsReceived)
+                {
+                    System.out.print("Test4 Process Receive "+ receivesTried +": " + new String(data) + "\n");
+                    ++packetsReveived;
+                }
+            }
+            
+            
+            //efcpConn1.StopReceiveThread();
+            //efcpConn2.StopReceiveThread();
         }
         catch(Exception e)
         {

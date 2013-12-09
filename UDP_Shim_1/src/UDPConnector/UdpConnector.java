@@ -129,15 +129,16 @@ public class UdpConnector implements ConnectorInterface
                     
                     // If we have a notifyOnReceive set, then call notify and 
                     // reset the notify pointer to null.
-                    if(m_notifyOnReceive.size() > 0)
+                    if(!m_notifyOnReceive.isEmpty())
                     {
+                        //System.out.print("ReceiverThreadTask: Start Notify  Loop\n");
                         for(ConnectorInterface.ReceiveNotifyInterface tempNotifyPtr : m_notifyOnReceive)
                         {
+                            //System.out.print("ReceiverThreadTask: Notify client of receive event.\n");
                             m_notifyOnReceive.remove(tempNotifyPtr);
                             tempNotifyPtr.Notify(UdpConnector.this);
                         }
                     }
-                    
                 }
                 System.out.print("ReceiverThreadTask: Receive thread terminated.\n");
             }
@@ -172,6 +173,7 @@ public class UdpConnector implements ConnectorInterface
     @Override 
     public boolean AddReceiveNotify(ReceiveNotifyInterface notifyMe)
     {
+        //System.out.print("UdpConnector.AddReceiveNotify: Enter.\n");
         return m_notifyOnReceive.add(notifyMe);
     }
     
@@ -183,16 +185,9 @@ public class UdpConnector implements ConnectorInterface
     @Override
     public List<byte[]> Receive(int maxBlockingTimeInMs)
     {
-        if(m_receiverThread == null)
-        {
-            m_receiverThread = new Thread(
-                    this.new ReceiverThreadTask(), 
-                    "Receiver Thread");
-            System.out.println("Starting thread...");
-            m_receiverThread.start();
-            
-            try {Thread.sleep(20);} catch(InterruptedException ex) {}
-        }
+        // Make sure receive thread is started.
+        StartReceiveThread();
+
         
         List<byte[]> retVal = new LinkedList<>(); 
         
@@ -201,17 +196,17 @@ public class UdpConnector implements ConnectorInterface
             // If no packets are ready, wait up to maxBlockingTime for a signal.
             if (m_packetsReady == 0 && maxBlockingTimeInMs > 0)
             {
-                System.out.print("waiting on receive...\n");
+                //System.out.print("UdpConnector.Receive: waiting on receive...\n");
                 try {
                     m_receiveBuffer.wait(maxBlockingTimeInMs);
                 } catch (Exception ex) { 
                     System.out.print("**ERROR** Exception waiting for next packet in Receive: \""+ex.getMessage()+"\"\n");
                 }
-                System.out.print("done waiting on receive packetsReady=" + m_packetsReady + "\n");
+                System.out.print("UdpConnector.Receive: Done waiting on receive packetsReady=" + m_packetsReady + "\n");
             }
             else
             {
-                System.out.print("NOT waiting. Packetsready=" + m_packetsReady + "\n");
+                //System.out.print("UdpConnector.Receive: NOT waiting. Packetsready=" + m_packetsReady + "\n");
             }
         }
         
@@ -219,7 +214,8 @@ public class UdpConnector implements ConnectorInterface
         {
             synchronized(m_receiveBuffer)
             {
-                System.out.print("Receive adding: " + new String(m_receiveBuffer[m_receiveBufferReadIndex]) + "\n");
+                //System.out.print("UdpConnector.Receive: adding:\"" + new String(m_receiveBuffer[m_receiveBufferReadIndex]) + "\"\n");
+                
                 retVal.add(m_receiveBuffer[m_receiveBufferReadIndex]);
                 
                 m_receiveBufferReadIndex = 
@@ -283,16 +279,19 @@ public class UdpConnector implements ConnectorInterface
     }
 
     
-    private void StartReceiveThread()
+    @Override
+    public void StartReceiveThread()
     {
         if(m_receiverThread == null)
         {
             m_receiverThread = new Thread(
                     this.new ReceiverThreadTask(), 
                     "Receiver Thread");
+            System.out.println("Starting thread...");
             m_receiverThread.start();
-            //System.out.println("ReceiveThread created.");
-        }   
+            
+            try {Thread.sleep(20);} catch(InterruptedException ex) {}
+        }        
     }
     
 }

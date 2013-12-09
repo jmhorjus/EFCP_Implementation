@@ -69,7 +69,9 @@ public class ConnectionShaper implements ConnectorInterface
     @Override
     public void StopReceiveThread()
     { m_connectionToShape.StopReceiveThread(); }
-    
+    @Override
+    public void StartReceiveThread()
+    { m_connectionToShape.StartReceiveThread(); }
     
     /// This inner class is a runnable thread that performs a delayed,
     /// uncertain send and then terminates.

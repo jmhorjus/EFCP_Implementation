@@ -35,7 +35,14 @@ public class EfcpConnector implements ConnectorInterface
         List<byte[]> retVal = new ArrayList<>();
         
         synchronized(m_receiverPacketsReady)
-        {    
+        {   
+            if (m_receiverPacketsReady.isEmpty())
+            {
+                System.out.print("Efcp.Receive: Nothing available; waiting.\n");
+                try{
+                    m_receiverPacketsReady.wait(maxBlockingTimeInMs);
+                } catch (Exception ex) { System.out.print("Efcp.Receive: ERROR:"+ex.getMessage()+".\n"); }
+            }
             retVal.addAll(m_receiverPacketsReady);
             m_receiverPacketsReady.clear();
         }
@@ -94,10 +101,11 @@ public class EfcpConnector implements ConnectorInterface
     }
     @Override
     public void StopReceiveThread()
-    {
-        m_innerConnection.StopReceiveThread();
-    }
-    
+    { m_innerConnection.StopReceiveThread();    }
+    @Override
+    public void StartReceiveThread()
+    { m_innerConnection.StartReceiveThread(); }
+
 
 
     /// Member variables 
@@ -131,6 +139,10 @@ public class EfcpConnector implements ConnectorInterface
         // from the managed connection, so we can immediately pick it up, process the
         // headers and send an ack.  
         this.m_innerConnection.AddReceiveNotify(this.new PacketReceivedEvent());
+        
+        // Efcp needs to be able to receive acks. No good talking without listening.
+        // Doing this in the constructor prevents errors in common use.
+        StartReceiveThread();
     }
     
     /// The RetransmitEvent implements Runnable
@@ -165,6 +177,8 @@ public class EfcpConnector implements ConnectorInterface
         @Override
         public void Notify(ConnectorInterface connection) 
         {
+            //System.out.print("Efcp:PacketReceivedEvent: Enter.\n");
+            
             // 1.) Call receive on the inner connection.
             List<byte[]> rawPacketsReceived = new ArrayList<>();
             try{
@@ -191,8 +205,8 @@ public class EfcpConnector implements ConnectorInterface
                         {
                             synchronized(m_receiverPacketsReady)
                             {
-                                System.out.print("Efcp received packet " +packet.getSeqNum()+ " in order!\n");
-                                m_receiverPacketsReady.add(packet.toBytes());
+                                System.out.print("Efcp received packet " + packet.getSeqNum() + " in order!\n");
+                                m_receiverPacketsReady.add(packet.getPayload());
                                 ++m_receiverNextPacketToDeliver;
 
                                 // Check the out-of-order packets for any next packets.
@@ -200,12 +214,16 @@ public class EfcpConnector implements ConnectorInterface
                                 {
                                     // Move the packet from the out of order list to the ready list
                                     // and increment m_receiverNextPacketToDeliver.
-                                    System.out.print("Efcp returning packet " +packet.getSeqNum()+ " after filled gap!\n");
+                                    System.out.print("Efcp returning packet " + m_receiverNextPacketToDeliver + " after filled gap!\n");
                                     m_receiverPacketsReady.add(
                                             m_receiverPacketsOutOfOrder.get(m_receiverNextPacketToDeliver));
-                                    m_receiverPacketsOutOfOrder.remove(m_receiverNextPacketToDeliver);                        
+                                    m_receiverPacketsOutOfOrder.remove(m_receiverNextPacketToDeliver);
+                                    
                                     ++m_receiverNextPacketToDeliver;
                                 }
+                                
+                                // Wake up any waiting receive.
+                                m_receiverPacketsReady.notify();
                             }
 
                             // Send an ack back to the sender.
@@ -233,7 +251,7 @@ public class EfcpConnector implements ConnectorInterface
                         // packet in this case also, depending on policy.
                         else
                         {
-                            m_receiverPacketsOutOfOrder.put(packet.getSeqNum(), packet.toBytes());
+                            m_receiverPacketsOutOfOrder.put(packet.getSeqNum(), packet.getPayload());
 
                             //TODO: Sellective ack logic and nack logic.
                         }
