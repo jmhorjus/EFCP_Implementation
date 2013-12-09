@@ -113,11 +113,11 @@ public class UdpConnector implements ConnectorInterface
                         }
                         else
                         {
-                            // We have room for this packet. Increment the
-                            // write index.
-                            System.out.print("ReceiverThreadTask port:" + m_portToListenOn
-                                    + " buffer:" + m_receiveBufferWriteIndex 
-                                    + " data:" + new String(recvPacket.getData()) + "\n");
+                            // We have room for this packet. Increment the write index.
+                            
+                            //System.out.print("ReceiverThreadTask port:" + m_portToListenOn
+                            //        + " buffer:" + m_receiveBufferWriteIndex 
+                            //        + " data:" + new String(recvPacket.getData()) + "\n");
 
                             m_receiveBufferWriteIndex = 
                                     (m_receiveBufferWriteIndex+1)%m_receiveBuffer.length;
@@ -190,7 +190,8 @@ public class UdpConnector implements ConnectorInterface
                     "Receiver Thread");
             System.out.println("Starting thread...");
             m_receiverThread.start();
-            System.out.println("Thread started...");
+            
+            try {Thread.sleep(20);} catch(InterruptedException ex) {}
         }
         
         List<byte[]> retVal = new LinkedList<>(); 

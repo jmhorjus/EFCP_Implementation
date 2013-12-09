@@ -82,7 +82,7 @@ public class EfcpConnector implements ConnectorInterface
                 );
         // 3.) Put the retransTaskHandle into the retransmission queue, so the 
         //  retransmit task can be canceled when an ack is received.
-        this.m_senderRetransQueue.put(packetToSend.getSeqNum(), retransTaskHandle);
+        this.m_senderRetransmitQueue.put(packetToSend.getSeqNum(), retransTaskHandle);
 
         // 4.) Send it!  Yay!     
         return m_innerConnection.Send(packetToSend.toBytes());
@@ -109,7 +109,8 @@ public class EfcpConnector implements ConnectorInterface
             new ScheduledThreadPoolExecutor(8); // 8 should be plenty
     
     /// Variables related to sender state.
-    Map<Integer, ScheduledFuture> m_senderRetransQueue = new HashMap<>();
+    Map<Integer, ScheduledFuture> m_senderRetransmitQueue = new HashMap<>();
+    int m_senderLastPacketAcked = 0;
     int m_senderNextSequenceNumber = 0; // initial test value
     int m_senderRightWindowEdge = 100; // initial test value
     
@@ -181,54 +182,81 @@ public class EfcpConnector implements ConnectorInterface
                 // 2.) Check the sequence number of the incoming packet. If it's the 
                 // next expected packet, then we can immediately make it available 
                 // (notify receivers above us) and send an Ack.  May do both of these 
-                // things for other packets if this one filled a gap. 
-                if (packet.getSeqNum() == m_receiverNextPacketToDeliver)
+                // things for other packets if this one filled a gap.
+                switch(packet.getPdu_type())
                 {
-                    synchronized(m_receiverPacketsReady)
+                    case EfcpConsts.PDU_TYPE_DATA:
                     {
-                    m_receiverPacketsReady.add(packet.toBytes());
-                    ++m_receiverNextPacketToDeliver;
-                    
-                    // Check the out-of-order packets for any next packets.
-                    while (m_receiverPacketsOutOfOrder.containsKey(m_receiverNextPacketToDeliver))
+                        if (packet.getSeqNum() == m_receiverNextPacketToDeliver)
+                        {
+                            synchronized(m_receiverPacketsReady)
+                            {
+                                System.out.print("Efcp received packet " +packet.getSeqNum()+ " in order!\n");
+                                m_receiverPacketsReady.add(packet.toBytes());
+                                ++m_receiverNextPacketToDeliver;
+
+                                // Check the out-of-order packets for any next packets.
+                                while (m_receiverPacketsOutOfOrder.containsKey(m_receiverNextPacketToDeliver))
+                                {
+                                    // Move the packet from the out of order list to the ready list
+                                    // and increment m_receiverNextPacketToDeliver.
+                                    System.out.print("Efcp returning packet " +packet.getSeqNum()+ " after filled gap!\n");
+                                    m_receiverPacketsReady.add(
+                                            m_receiverPacketsOutOfOrder.get(m_receiverNextPacketToDeliver));
+                                    m_receiverPacketsOutOfOrder.remove(m_receiverNextPacketToDeliver);                        
+                                    ++m_receiverNextPacketToDeliver;
+                                }
+                            }
+
+                            // Send an ack back to the sender.
+                            DtpPacket ackToSend = new DtpPacket(
+                                    (short)0, //short destAddr 
+                                    (short)0, //short srcAddr
+                                    (short)0, //short destCEPid
+                                    (short)0, //short srcCEPid, 
+                                    (byte)0,  //byte qosid, 
+                                    EfcpConsts.PDU_TYPE_ACK_ONLY, //byte pdu_type, 
+                                    (byte)0,  //byte flags, 
+                                    packet.getSeqNum(), //int seqNum
+                                    "".getBytes() //byte[] payload
+                                    ); 
+
+                            try {
+                            m_innerConnection.Send(ackToSend.toBytes());
+                            }
+                            catch(Exception ex) { 
+                                System.out.print("Exception Sending Ack:" + ex.getMessage() + "\n"); 
+                            }
+                        }
+                        // 3.) If its an out of order packet we save it for later, but only 
+                        // ack if selective acks are enabled. We may nack the next expected
+                        // packet in this case also, depending on policy.
+                        else
+                        {
+                            m_receiverPacketsOutOfOrder.put(packet.getSeqNum(), packet.toBytes());
+
+                            //TODO: Sellective ack logic and nack logic.
+                        }
+                        break;
+                    }
+                    case EfcpConsts.PDU_TYPE_ACK_ONLY:
                     {
-                        // Move the packet from the out of order list to the ready list
-                        // and increment m_receiverNextPacketToDeliver.
-                        m_receiverPacketsReady.add(
-                                m_receiverPacketsOutOfOrder.get(m_receiverNextPacketToDeliver));
-                        m_receiverPacketsOutOfOrder.remove(m_receiverNextPacketToDeliver);                        
-                        ++m_receiverNextPacketToDeliver;
+                        System.out.print("Efcp: Ack Received: seq="+packet.getSeqNum()+"\n");
+                        if (m_senderLastPacketAcked >= packet.getSeqNum()) {
+                            System.out.print("Ignoring redundant Ack.\n");
+                            break;
+                        }
+                        //1.) Cancel all retransmission events for packets with 
+                        // sequence numbers <= the acked sequence number.
+                        while(m_senderLastPacketAcked < packet.getSeqNum())
+                        {
+                            ScheduledFuture task = m_senderRetransmitQueue.get(++m_senderLastPacketAcked);
+                            task.cancel(false);
+                        }
+                        
+                        break;
                     }
-                    }
-                    
-                    // Send an ack back to the sender.
-                    DtpPacket ackToSend = new DtpPacket(
-                            (short)0, //short destAddr 
-                            (short)0, //short srcAddr
-                            (short)0, //short destCEPid
-                            (short)0, //short srcCEPid, 
-                            (byte)0,  //byte qosid, 
-                            EfcpConsts.PDU_TYPE_ACK_ONLY, //byte pdu_type, 
-                            (byte)0,  //byte flags, 
-                            packet.getSeqNum(), //int seqNum
-                            "".getBytes() //byte[] payload
-                            ); 
-                    
-                    try {
-                    m_innerConnection.Send(ackToSend.toBytes());
-                    }
-                    catch(Exception ex) { 
-                        System.out.print("Exception Sending Ack:" + ex.getMessage() + "\n"); 
-                    }
-                }
-                // 3.) If its an out of order packet we save it for later, but only 
-                // ack if selective acks are enabled. We may nack the next expected
-                // packet in this case also, depending on policy.
-                else
-                {
-                    m_receiverPacketsOutOfOrder.put(packet.getSeqNum(), packet.toBytes());
-                    
-                    //TODO: Sellective ack logic and nack logic.
+
                 }
             }
             
