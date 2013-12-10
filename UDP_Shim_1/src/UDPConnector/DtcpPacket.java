@@ -19,24 +19,41 @@ import org.apache.commons.logging.LogFactory;
  * @author Yuefeng Wang and Flavio Esposito. Computer Science Department, Boston University
  *   
  */
-public class DtpPacket {
+public class DtcpPacket {
 
-	private Log log = LogFactory.getLog(DtpPacket.class);
+	private Log log = LogFactory.getLog(DtcpPacket.class);
 
+        // First field in packet - determines how the rest of the header is read.
+        private byte pdu_type; //1 bytes
+        
+        // Fields that apply to DTP
 	private short destAddr; //2 bytes
 	private short srcAddr;  //2 bytes
 	private short destCEPid;//2 bytes
 	private short srcCEPid; //2 bytes
 	private byte qosid; // 1 byte 
-	private byte pdu_type; //1 bytes
-	private byte flags; //1  bytes
+	private byte flags; //1  bytes 
 	private int seqNum; //4
-	private byte[] payload;
+	
+        // Fields that apply to EFCP
+        private int ackSeqNum; //For ack/nack 4 bytes
+        private int newRightWindowEdge; // For sliding window  4 bytes
+        private short newDataRate; // for rate-based flow control. 2 bytes
+        private short newDataPeriodInMs; // for rate-based flow control. 2 bytes
+        
+        // Define the header length in one place.
+        public static final int HEADER_LENGTH = 27;
+        
+        private byte[] payload;
 	private  int length;
+        
 
+        //TODO: We need factory functions like "MakeAckPacket", "MakeDataPacket".
+        
+        
+        public DtcpPacket (){}
 
-
-	public DtpPacket (short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte qosid, byte pdu_type, byte flags, int seqNum, byte[] payload)
+	public DtcpPacket (short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte qosid, byte pdu_type,  byte flags, int seqNum, byte[] payload)
 	{
 		this.destAddr = destAddr;
 		this.srcAddr = srcAddr;
@@ -46,26 +63,17 @@ public class DtpPacket {
 		this.pdu_type = pdu_type;
 		this.flags = flags;
 		this.seqNum = seqNum;
+                
+                this.ackSeqNum = 0;
+                this.newRightWindowEdge = 0;
+                this.newDataRate = 0;
+                this.newDataPeriodInMs = 0;
+                             
 		this.payload = payload;
-		this.length = 15 + this.payload.length;
+		this.length = HEADER_LENGTH + this.payload.length;
 	}
 
-	public DtpPacket ( short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte pdu_type, byte[] payload)
-	{
-		this.destAddr = destAddr;
-		this.srcAddr = srcAddr;
-		this.destCEPid = destCEPid;
-		this.srcCEPid = srcCEPid;
-		this.qosid = 1;
-		this.pdu_type = pdu_type;
-		this.flags = 0;
-		this.seqNum = 0;
-		this.payload = payload;
-		this.length = 15 + this.payload.length;
-	}
-	
-	
-	public DtpPacket ( short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte[] payload)
+	public DtcpPacket (short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte pdu_type, byte[] payload)
 	{
 		this.destAddr = destAddr;
 		this.srcAddr = srcAddr;
@@ -73,43 +81,63 @@ public class DtpPacket {
 		this.srcCEPid = srcCEPid;
 		this.qosid = 1;
 		this.flags = 0;
-		this.seqNum = 0;
+                this.pdu_type = pdu_type;
+		this.seqNum = 0; //TODO: needs to be set
+                
+                this.ackSeqNum = 0;
+                this.newRightWindowEdge = 0;
+                this.newDataRate = 0;
+                this.newDataPeriodInMs = 0;
+                
 		this.payload = payload;
-		this.length = 15 + this.payload.length;
+		this.length = HEADER_LENGTH + this.payload.length;
 	}
 
-	public DtpPacket ( short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte pdu_type)
+	public DtcpPacket (short destAddr, short srcAddr, short destCEPid, short srcCEPid, byte pdu_type)
 	{
-		this.destAddr = destAddr;
+                this.destAddr = destAddr;
 		this.srcAddr = srcAddr;
 		this.destCEPid = destCEPid;
 		this.srcCEPid = srcCEPid;
 		this.qosid = 1;
-		this.pdu_type = pdu_type;
 		this.flags = 0;
-		this.seqNum = 0;
-		this.length = 15;
+		this.pdu_type = pdu_type;
+                this.seqNum = 0;
+                
+                this.ackSeqNum = 0;
+                this.newRightWindowEdge = 0;
+                this.newDataRate = 0;
+                this.newDataPeriodInMs = 0;
+                
+		this.length = HEADER_LENGTH;
 	}
 
 	/**
 	 * Construct a DTP message from bytes received, this will be used on the receiving side
 	 * @param bytes
 	 */
-	public DtpPacket(byte[] bytes) {
+	public DtcpPacket(byte[] bytes) 
+        {
 
-		ByteBuffer buf = ByteBuffer.wrap(bytes, 0, 15);
+		ByteBuffer buf = ByteBuffer.wrap(bytes, 0, HEADER_LENGTH);
 
 		buf.order(ByteOrder.LITTLE_ENDIAN);
-
-		this.destAddr = buf.getShort(0); //2 bytes
-		this.srcAddr = buf.getShort(2);  //2 bytes
-		this.destCEPid =  buf.getShort(4);//2 bytes
-		this.srcCEPid = buf.getShort(6); //2 bytes
-		this.qosid = buf.get(8); // 1 byte 
-		this.pdu_type = buf.get(9); //1 bytes
+                
+                this.pdu_type = buf.get(0); //1 bytes
+		this.destAddr = buf.getShort(1); //2 bytes
+		this.srcAddr = buf.getShort(3);  //2 bytes
+		this.destCEPid =  buf.getShort(5);//2 bytes
+		this.srcCEPid = buf.getShort(7); //2 bytes
+		this.qosid = buf.get(9); // 1 byte 
 		//	this.pdu_type = (byte) (this.pdu_type & 0xFF); // converted to 0x
 		this.flags = buf.get(10); //1  bytes
 		this.seqNum = buf.getInt(11); //4
+                
+                this.ackSeqNum = buf.getInt(15); //4
+                this.newRightWindowEdge = buf.getInt(19); //4
+                this.newDataRate = buf.getShort(23); //2
+                this.newDataPeriodInMs = buf.getShort(25); //2
+                
 		this.payload = this.getPayloadFromBytes(bytes);
 		this.length = bytes.length;
 	}
@@ -120,16 +148,16 @@ public class DtpPacket {
 	 */
 //	public DtpPacket(CDAP.CDAPMessage cdapMessage)
 //	{
+//              this.pdu_type = (byte)0xC0;//CDAP
 //		this.destAddr = 0;
 //		this.srcAddr = 0;
 //		this.destCEPid = 0;
 //		this.srcCEPid = 0;
-//		this.qosid = 0;
-//		this.pdu_type = (byte)0xC0;//CDAP
+//		this.qosid = 0;		
 //		this.flags = 0;
 //		this.seqNum = 0;
 //		this.payload = cdapMessage.toByteArray();
-//		this.length = 15 + this.payload.length;
+//		this.length = HEADER_LENGTH + this.payload.length;
 //	}
 
 	/**
@@ -139,8 +167,9 @@ public class DtpPacket {
 	 * @param destCEPid
 	 * @param msg
 	 */
-	public DtpPacket(short srcCEPid, short destCEPid, byte[] msg)
+	public DtcpPacket(short srcCEPid, short destCEPid, byte[] msg)
 	{
+                this.pdu_type = EfcpConsts.PDU_TYPE_DATA;
 		this.destAddr = 0;
 		this.srcAddr = 0;
 		this.destCEPid = destCEPid;
@@ -148,8 +177,14 @@ public class DtpPacket {
 		this.qosid = 0;
 		this.flags = 0;
 		this.seqNum = 0;
+                
+                this.ackSeqNum = 0; //4
+                this.newRightWindowEdge = 0; //4
+                this.newDataRate = 0; //2
+                this.newDataPeriodInMs = 0; //2
+                
 		this.payload = msg;
-		this.length = 15 + this.payload.length;
+		this.length = HEADER_LENGTH + this.payload.length;
 	}
 	
 	public byte[] toBytes()
@@ -157,14 +192,20 @@ public class DtpPacket {
 		ByteBuffer bbuf = ByteBuffer.allocate(length);
 		bbuf.order(ByteOrder.LITTLE_ENDIAN);
 
+                bbuf.put(this.pdu_type);
 		bbuf.putShort(this.destAddr);
 		bbuf.putShort(this.srcAddr);
 		bbuf.putShort(this.destCEPid);
 		bbuf.putShort(this.srcCEPid);
 		bbuf.put(this.qosid);
-		bbuf.put(this.pdu_type);
 		bbuf.put(this.flags);
 		bbuf.putInt(this.seqNum);
+                
+                bbuf.putInt(this.ackSeqNum);
+                bbuf.putInt(this.newRightWindowEdge);
+                bbuf.putShort(this.newDataRate);
+                bbuf.putShort(this.newDataPeriodInMs);
+                
 		if(this.payload !=null)
 		{
 			bbuf.put(this.payload);
@@ -175,17 +216,15 @@ public class DtpPacket {
 
 
 
-	private byte[] getPayloadFromBytes (byte[] msg) {
-
+	private byte[] getPayloadFromBytes (byte[] msg) 
+        {
 		int newLength = msg.length;
+		byte[] newPayload = new byte[newLength-HEADER_LENGTH]; 
 
-		byte[] newPayload = new byte[newLength-15]; 
-
-		for(int i =0; i<newLength -15; i++)
+		for(int i =0; i<newLength -HEADER_LENGTH; i++)
 		{
-			newPayload[i] = msg[15+i];
+			newPayload[i] = msg[HEADER_LENGTH+i];
 		}
-
 		return newPayload;
 	}
 

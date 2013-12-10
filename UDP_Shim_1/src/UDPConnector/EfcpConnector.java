@@ -68,7 +68,7 @@ public class EfcpConnector implements ConnectorInterface
         
         // 1.) Wrap the data up in the packet.  Use a packet with DTP and EFCP fields.
         //  This means giving it a sequence number, etc. 
-        DtpPacket packetToSend = new DtpPacket(
+        DtcpPacket packetToSend = new DtcpPacket(
                 (short)0, //short destAddr 
                 (short)0, //short srcAddr
                 (short)0, //short destCEPid
@@ -148,9 +148,9 @@ public class EfcpConnector implements ConnectorInterface
     /// The RetransmitEvent implements Runnable
     class RetransmitEvent implements Runnable
     {
-        DtpPacket m_packetToRetransmit; 
+        DtcpPacket m_packetToRetransmit; 
         int m_timesRestransmitted = 0; 
-        RetransmitEvent(DtpPacket packetToTransmit)
+        RetransmitEvent(DtcpPacket packetToTransmit)
         {
             m_packetToRetransmit = packetToTransmit;
         }
@@ -191,7 +191,7 @@ public class EfcpConnector implements ConnectorInterface
             {
                 // 1.) Deserialize the data into a packet object - so we can see its 
                 // sequence number and other relevant header fields.
-                DtpPacket packet = new DtpPacket(rawPacket);
+                DtcpPacket packet = new DtcpPacket(rawPacket);
             
                 // 2.) Check the sequence number of the incoming packet. If it's the 
                 // next expected packet, then we can immediately make it available 
@@ -274,7 +274,7 @@ public class EfcpConnector implements ConnectorInterface
         void SendAck()
         {
             // Send an ack back to the sender.
-            DtpPacket ackToSend = new DtpPacket(
+            DtcpPacket ackToSend = new DtcpPacket(
                     (short)0, //short destAddr 
                     (short)0, //short srcAddr
                     (short)0, //short destCEPid
