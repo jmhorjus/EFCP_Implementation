@@ -10,13 +10,24 @@ package UDPConnector;
  */
 public class EfcpPolicyInfo {
     
+    
     /// This class to be full of a ton of flags and numbers.
     /// It could probably just be a struct.
-    public int RetransmitDelayInMs = 200;
+    public boolean RetransmitEnabled = true;         
+    public int RetransmitDelayInMs = 300;
+    public int RetransmitMaxTimes = 15;
+    
     public int AckDelayInMs = 10;
-    public int MaxTimesToRetransmit = 10;
     
     
-    public int ClosedWindowQueueMaxSize = 50;
+    public boolean WindowFlowControlEnabled = true;
+    public int WindowDefaultSize = 20;
+
+    public int ClosedWindowQueueMaxSize = 100;
+    
+    
+    public boolean RateFlowControlEnabled = false;
+    public int RateDefaultPaketsPerPeriod = 200;
+    public int RateDefaultPeriodInMs = 2000;
     
 }

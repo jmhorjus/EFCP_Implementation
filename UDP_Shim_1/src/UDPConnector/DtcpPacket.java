@@ -36,10 +36,10 @@ public class DtcpPacket {
 	private int seqNum; //4
 	
         // Fields that apply to EFCP
-        private int ackSeqNum; //For ack/nack 4 bytes
-        private int newRightWindowEdge; // For sliding window  4 bytes
-        private short newDataRate; // for rate-based flow control. 2 bytes
-        private short newDataPeriodInMs; // for rate-based flow control. 2 bytes
+        public int AckSeqNum; //For ack/nack 4 bytes
+        public int NewRightWindowEdge; // For sliding window  4 bytes
+        public short NewDataRate; // for rate-based flow control. 2 bytes
+        public short NewDataPeriodInMs; // for rate-based flow control. 2 bytes
         
         // Define the header length in one place.
         public static final int HEADER_LENGTH = 27;
@@ -63,11 +63,6 @@ public class DtcpPacket {
 		this.pdu_type = pdu_type;
 		this.flags = flags;
 		this.seqNum = seqNum;
-                
-                this.ackSeqNum = 0;
-                this.newRightWindowEdge = 0;
-                this.newDataRate = 0;
-                this.newDataPeriodInMs = 0;
                              
 		this.payload = payload;
 		this.length = HEADER_LENGTH + this.payload.length;
@@ -84,11 +79,6 @@ public class DtcpPacket {
                 this.pdu_type = pdu_type;
 		this.seqNum = 0; //TODO: needs to be set
                 
-                this.ackSeqNum = 0;
-                this.newRightWindowEdge = 0;
-                this.newDataRate = 0;
-                this.newDataPeriodInMs = 0;
-                
 		this.payload = payload;
 		this.length = HEADER_LENGTH + this.payload.length;
 	}
@@ -104,10 +94,6 @@ public class DtcpPacket {
 		this.pdu_type = pdu_type;
                 this.seqNum = 0;
                 
-                this.ackSeqNum = 0;
-                this.newRightWindowEdge = 0;
-                this.newDataRate = 0;
-                this.newDataPeriodInMs = 0;
                 
 		this.length = HEADER_LENGTH;
 	}
@@ -133,10 +119,10 @@ public class DtcpPacket {
 		this.flags = buf.get(10); //1  bytes
 		this.seqNum = buf.getInt(11); //4
                 
-                this.ackSeqNum = buf.getInt(15); //4
-                this.newRightWindowEdge = buf.getInt(19); //4
-                this.newDataRate = buf.getShort(23); //2
-                this.newDataPeriodInMs = buf.getShort(25); //2
+                this.AckSeqNum = buf.getInt(15); //4
+                this.NewRightWindowEdge = buf.getInt(19); //4
+                this.NewDataRate = buf.getShort(23); //2
+                this.NewDataPeriodInMs = buf.getShort(25); //2
                 
 		this.payload = this.getPayloadFromBytes(bytes);
 		this.length = bytes.length;
@@ -178,11 +164,6 @@ public class DtcpPacket {
 		this.flags = 0;
 		this.seqNum = 0;
                 
-                this.ackSeqNum = 0; //4
-                this.newRightWindowEdge = 0; //4
-                this.newDataRate = 0; //2
-                this.newDataPeriodInMs = 0; //2
-                
 		this.payload = msg;
 		this.length = HEADER_LENGTH + this.payload.length;
 	}
@@ -201,10 +182,10 @@ public class DtcpPacket {
 		bbuf.put(this.flags);
 		bbuf.putInt(this.seqNum);
                 
-                bbuf.putInt(this.ackSeqNum);
-                bbuf.putInt(this.newRightWindowEdge);
-                bbuf.putShort(this.newDataRate);
-                bbuf.putShort(this.newDataPeriodInMs);
+                bbuf.putInt(this.AckSeqNum);
+                bbuf.putInt(this.NewRightWindowEdge);
+                bbuf.putShort(this.NewDataRate);
+                bbuf.putShort(this.NewDataPeriodInMs);
                 
 		if(this.payload !=null)
 		{

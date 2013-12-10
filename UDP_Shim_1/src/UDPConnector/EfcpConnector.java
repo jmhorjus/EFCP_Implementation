@@ -160,9 +160,9 @@ public class EfcpConnector implements ConnectorInterface
         {
             // Just send it - most of the accounting is only done once.
             try {
-                if(++m_timesRestransmitted > m_policyInfo.MaxTimesToRetransmit){
+                if(++m_timesRestransmitted > m_policyInfo.RetransmitMaxTimes){
                     throw new Exception("Failed to deliver packet after "
-                            +m_policyInfo.MaxTimesToRetransmit+" tries!");
+                            +m_policyInfo.RetransmitMaxTimes+" tries!");
                 }
                 m_innerConnection.Send(m_packetToRetransmit.toBytes());
             }
@@ -252,22 +252,19 @@ public class EfcpConnector implements ConnectorInterface
                     }
                     case EfcpConsts.PDU_TYPE_ACK_ONLY:
                     {
-                        System.out.print("Efcp: Ack Received: seq="+packet.getSeqNum()+"\n");
-                        if (m_senderLastPacketAcked >= packet.getSeqNum()) {
-                            System.out.print("Ignoring redundant Ack. lastAck="+m_senderLastPacketAcked+"\n");
-                            break;
-                        }
-                        //1.) Cancel all retransmission events for packets with 
-                        // sequence numbers <= the acked sequence number.
-                        while(m_senderLastPacketAcked < packet.getSeqNum())
-                        {
-                            ScheduledFuture task = m_senderRetransmitQueue.get(++m_senderLastPacketAcked);
-                            task.cancel(false);
-                        }
+                        ReceiveAck(packet.AckSeqNum);
+                        break;
+                    }
+                    case EfcpConsts.PDU_TYPE_FLOW_ACK:
+                    {
+                        ReceiveAck(packet.AckSeqNum);
                         
                         break;
                     }
-
+                    case EfcpConsts.PDU_TYPE_FLOW_ONLY:
+                        
+                        break;
+                          
                 }
             }
             
@@ -288,9 +285,10 @@ public class EfcpConnector implements ConnectorInterface
                     (byte)0,  //byte qosid, 
                     EfcpConsts.PDU_TYPE_ACK_ONLY, //byte pdu_type, 
                     (byte)0,  //byte flags, 
-                    m_receiverNextPacketToDeliver-1, //int seqNum
+                    (int)0, //int seqNum - control packets not yet using this.
                     "ACK".getBytes() //byte[] payload
                     ); 
+            ackToSend.AckSeqNum = m_receiverNextPacketToDeliver-1; //int seqNum
 
             try {
                 m_innerConnection.Send(ackToSend.toBytes());
@@ -300,6 +298,34 @@ public class EfcpConnector implements ConnectorInterface
                 System.out.print("Exception Sending Ack:" + ex.getMessage() + "\n"); 
             }
         }
+        
+        void ReceiveAck(int sequenceNum)
+        {
+            System.out.print("Efcp: Ack Received: seq="+sequenceNum+"\n");
+            if (m_senderLastPacketAcked >= sequenceNum) {
+                System.out.print("Ignoring redundant Ack. lastAck="+m_senderLastPacketAcked+"\n");
+                return;
+            }
+            //1.) Cancel all retransmission events for packets with 
+            // sequence numbers <= the acked sequence number.
+            while(m_senderLastPacketAcked < sequenceNum)
+            {
+                ScheduledFuture task = m_senderRetransmitQueue.get(++m_senderLastPacketAcked);
+                task.cancel(false);
+            }
+            return;
+        }
+        
+        void SendFlowControl()
+        {
+            
+        }
+        
+        void ReceiveFlowControl()
+        {
+            
+        }
+        
         
     }
 
