@@ -225,7 +225,7 @@ public class UdpConnectorTest {
                     ++packetsReveived;
                 }
             }
-            
+            System.out.print("SUCCESS. Got all 29 packets!! \n");
             // Let these threads remain running - make sure there's no unfinished
             // cleanup or unresolved state that might cause continued activity.
             //efcpConn1.StopReceiveThread();
@@ -236,6 +236,7 @@ public class UdpConnectorTest {
             System.out.println("Test4 Error:" + e.getMessage());
         }   
 
+        System.out.print("\n\n****TEST  DONE**** \n\n");
     }
  
 }
