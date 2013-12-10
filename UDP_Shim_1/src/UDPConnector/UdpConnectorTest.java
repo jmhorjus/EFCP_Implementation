@@ -160,9 +160,9 @@ public class UdpConnectorTest {
             EfcpConnector efcpConn1 = new EfcpConnector( 
                     new ConnectionShaper(
                         new UdpConnector(1188),
-                        600, // 600ms min delay
-                        300, // up to 300ms additional random delay (jitter).
-                        3333 // 33% packet loss
+                        100, // 600ms min delay
+                        50, // up to 300ms additional random delay (jitter).
+                        4333 // 33% packet loss
                     ),
                     new EfcpPolicyInfo()
                     );
@@ -171,9 +171,9 @@ public class UdpConnectorTest {
             EfcpConnector efcpConn2 = new EfcpConnector( 
                     new ConnectionShaper(
                         new UdpConnector(1189),
-                        600, // 600ms min delay
-                        300, // up to 300ms additional random delay (jitter).
-                        3333 // 33% packet loss
+                        100, // 600ms min delay
+                        50, // up to 300ms additional random delay (jitter).
+                        4333 // 33% packet loss
                     ),
                     new EfcpPolicyInfo()
                     );
@@ -185,27 +185,27 @@ public class UdpConnectorTest {
                 efcpConn1.Send("Test4_Packet_"+ii+".");
             }
             
-            int packetsReveived = 0;
+            int packetsReceived = 0;
             
             System.out.print("Test 4 Process Receive 1: Shouldn't get anything.\n");
             List<byte[]> dataPacketsReceived = efcpConn2.Receive(600);
             for(byte[] data : dataPacketsReceived)
             {
                 System.out.print("Test4 Process Receive 1: " + new String(data) + "\n");
-                ++packetsReveived;
+                ++packetsReceived;
             }
             
             /// First receive may not have been able to pick up all packets (not yet arrived)
             try {Thread.sleep(1000);} catch(InterruptedException ex) {}
             int receivesTried = 1;
-            while(packetsReveived<19)
+            while(packetsReceived<19)
             {
                 System.out.print("Test 4 Process Receive "+ ++receivesTried +": Should get only in-order packets.\n");
                 dataPacketsReceived = efcpConn2.Receive(1000);
                 for(byte[] data : dataPacketsReceived)
                 {
                     System.out.print("Test4 Process Receive "+ receivesTried +": " + new String(data) + "\n");
-                    ++packetsReveived;
+                    ++packetsReceived;
                 }
             }
             
@@ -215,14 +215,16 @@ public class UdpConnectorTest {
                 System.out.print("Test4 Process Send "+ ii +".\n");
                 efcpConn1.Send("Test4_Packet_"+ii+".");
             }
-            while(packetsReveived<29)
+            while(packetsReceived<29)
             {
                 System.out.print("Test 4 Process Receive "+ ++receivesTried +": Should get only in-order packets.\n");
                 dataPacketsReceived = efcpConn2.Receive(1000);
                 for(byte[] data : dataPacketsReceived)
                 {
-                    System.out.print("Test4 Process Receive "+ receivesTried +": " + new String(data) + "\n");
-                    ++packetsReveived;
+                    System.out.print("->Test4 Process Receive "+ receivesTried 
+                            +", packet " + packetsReceived 
+                            +" contains \"" + new String(data) + "\"\n");
+                    ++packetsReceived;
                 }
             }
             System.out.print("SUCCESS. Got all 29 packets!! \n");

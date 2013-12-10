@@ -83,8 +83,8 @@ public class EfcpConnector implements ConnectorInterface
         // 2.) Shedule retransmission.
         ScheduledFuture retransTaskHandle = s_timedTaskExecutor.scheduleAtFixedRate(
                 this.new RetransmitEvent(packetToSend), // Runnable task
-                1200, // int initialDelay
-                1200, // int period
+                m_policyInfo.RetransmitDelayInMs, // int initialDelay
+                m_policyInfo.RetransmitDelayInMs, // int period
                 TimeUnit.MILLISECONDS // TimeUnit 
                 );
         // 3.) Put the retransTaskHandle into the retransmission queue, so the 
@@ -160,7 +160,10 @@ public class EfcpConnector implements ConnectorInterface
         {
             // Just send it - most of the accounting is only done once.
             try {
-                ++m_timesRestransmitted;
+                if(++m_timesRestransmitted > m_policyInfo.MaxTimesToRetransmit){
+                    throw new Exception("Failed to deliver packet after "
+                            +m_policyInfo.MaxTimesToRetransmit+" tries!");
+                }
                 m_innerConnection.Send(m_packetToRetransmit.toBytes());
             }
             catch(Exception ex) { 
@@ -238,8 +241,11 @@ public class EfcpConnector implements ConnectorInterface
                         }
                         else // packet.getSeqNum() > m_receiverNextPacketToDeliver, so there's a gap.
                         {
-                            m_receiverPacketsOutOfOrder.put(packet.getSeqNum(), packet.getPayload());
-
+                            // Don't add duplicates to the out-of-order packets list.
+                            if (!m_receiverPacketsOutOfOrder.containsKey(packet.getSeqNum()))
+                            {
+                                m_receiverPacketsOutOfOrder.put(packet.getSeqNum(), packet.getPayload());
+                            }
                             //TODO: Sellective ack logic and nack logic.
                         }
                         break;
