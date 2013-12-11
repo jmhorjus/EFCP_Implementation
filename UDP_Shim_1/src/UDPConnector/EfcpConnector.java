@@ -120,25 +120,28 @@ public class EfcpConnector implements ConnectorInterface
     Map<Integer, ScheduledFuture> m_senderRetransmitQueue = new HashMap<>();
     int m_senderLastPacketAcked = -1;
     int m_senderNextSequenceNumber = 0; // initial test value
-    int m_senderRightWindowEdge = 100; // initial test value
+    int m_senderRightWindowEdge = 0; // initial test value
     
     /// Variables related to receiver state.
     final List<byte[]> m_receiverPacketsReady = new ArrayList<>();
     Map<Integer, byte[]> m_receiverPacketsOutOfOrder = new HashMap<>();
     int m_receiverNextPacketToDeliver = 0; // initial test value
-    int m_receiverRightWindowEdge = 100; // initial test value
+    int m_receiverWindowSize = 0; // initial test value
  
     
     /// Constructor
     EfcpConnector(ConnectorInterface unreliableConnection, EfcpPolicyInfo policyInfo) 
     {
-        this.m_innerConnection = unreliableConnection;
-        this.m_policyInfo = policyInfo;
+        m_innerConnection = unreliableConnection;
+        
+        m_policyInfo = policyInfo;
+        m_senderRightWindowEdge = m_policyInfo.WindowDefaultInitialSize;
+        m_receiverWindowSize = m_policyInfo.WindowDefaultInitialSize;
         
         // We need to register to be notified whenever data is available to reveive 
         // from the managed connection, so we can immediately pick it up, process the
         // headers and send an ack.  
-        this.m_innerConnection.AddReceiveNotify(this.new PacketReceivedEvent());
+        m_innerConnection.AddReceiveNotify(this.new PacketReceivedEvent());
         
         // Efcp needs to be able to receive acks. No good talking without listening.
         // Doing this in the constructor prevents errors in common use.
@@ -258,13 +261,14 @@ public class EfcpConnector implements ConnectorInterface
                     case EfcpConsts.PDU_TYPE_FLOW_ACK:
                     {
                         ReceiveAck(packet.AckSeqNum);
-                        
+                        ReceiveFlowControl(packet);
                         break;
                     }
                     case EfcpConsts.PDU_TYPE_FLOW_ONLY:
-                        
+                    {
+                        ReceiveFlowControl(packet);
                         break;
-                          
+                    }     
                 }
             }
             
@@ -276,6 +280,14 @@ public class EfcpConnector implements ConnectorInterface
         
         void SendAck()
         {
+            byte pduType;
+            if (m_policyInfo.WindowFlowControlEnabled || m_policyInfo.RateFlowControlEnabled)
+                pduType = m_policyInfo.RetransmitEnabled ? 
+                        EfcpConsts.PDU_TYPE_FLOW_ACK : EfcpConsts.PDU_TYPE_FLOW_ONLY;
+            else
+                pduType = m_policyInfo.RetransmitEnabled ? 
+                        EfcpConsts.PDU_TYPE_ACK_ONLY : EfcpConsts.PDU_TYPE_CONTROL;
+            
             // Send an ack back to the sender.
             DtcpPacket ackToSend = new DtcpPacket(
                     (short)0, //short destAddr 
@@ -283,12 +295,22 @@ public class EfcpConnector implements ConnectorInterface
                     (short)0, //short destCEPid
                     (short)0, //short srcCEPid, 
                     (byte)0,  //byte qosid, 
-                    EfcpConsts.PDU_TYPE_ACK_ONLY, //byte pdu_type, 
+                    pduType,  //byte pdu_type, 
                     (byte)0,  //byte flags, 
-                    (int)0, //int seqNum - control packets not yet using this.
-                    "ACK".getBytes() //byte[] payload
+                    (int)0,   //int seqNum - control packets not yet using this.
+                    "CTRL".getBytes() //byte[] payload
                     ); 
-            ackToSend.AckSeqNum = m_receiverNextPacketToDeliver-1; //int seqNum
+            
+            // Set the actual control data fields in the packet.
+            if (m_policyInfo.RetransmitEnabled)
+                ackToSend.AckSeqNum = m_receiverNextPacketToDeliver-1; //int seqNum
+            if (m_policyInfo.WindowFlowControlEnabled)
+                ackToSend.NewRightWindowEdge = m_receiverNextPacketToDeliver + m_policyInfo.WindowDefaultInitialSize;
+            if (m_policyInfo.RateFlowControlEnabled) {
+                ackToSend.NewDataPeriodInMs = m_policyInfo.RateDefaultPeriodInMs;
+                ackToSend.NewDataRate = m_policyInfo.RateDefaultPaketsPerPeriod;
+            }
+            
 
             try {
                 m_innerConnection.Send(ackToSend.toBytes());
@@ -298,6 +320,7 @@ public class EfcpConnector implements ConnectorInterface
                 System.out.print("Exception Sending Ack:" + ex.getMessage() + "\n"); 
             }
         }
+        
         
         void ReceiveAck(int sequenceNum)
         {
@@ -313,19 +336,20 @@ public class EfcpConnector implements ConnectorInterface
                 ScheduledFuture task = m_senderRetransmitQueue.get(++m_senderLastPacketAcked);
                 task.cancel(false);
             }
-            return;
         }
         
-        void SendFlowControl()
+        
+        void ReceiveFlowControl(DtcpPacket packet)
         {
+            if (m_senderRightWindowEdge < packet.NewRightWindowEdge) {
+                System.out.print("Efcp: Flow control received. right window edge from "
+                        + m_senderRightWindowEdge + " to " + packet.NewRightWindowEdge + ".\n");
+                // Set the new right window edge.
+                m_senderRightWindowEdge = packet.NewRightWindowEdge;
             
+                // Rate based control: 
+            }
         }
-        
-        void ReceiveFlowControl()
-        {
-            
-        }
-        
         
     }
 

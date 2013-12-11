@@ -213,7 +213,7 @@ public class UdpConnectorTest {
             for (int ii = 20; ii<30; ii++)
             {
                 System.out.print("Test4 Process Send "+ ii +".\n");
-                efcpConn1.Send("Test4_Packet_"+ii+".");
+                efcpConn1.Send("Test4_Packet_"+ii);
             }
             while(packetsReceived<29)
             {
@@ -221,13 +221,13 @@ public class UdpConnectorTest {
                 dataPacketsReceived = efcpConn2.Receive(1000);
                 for(byte[] data : dataPacketsReceived)
                 {
-                    System.out.print("->Test4 Process Receive "+ receivesTried 
+                    System.out.print("->Test 4 Process Receive "+ receivesTried 
                             +", packet " + packetsReceived 
-                            +" contains \"" + new String(data) + "\"\n");
+                            +" contains " + new String(data) + "\n");
                     ++packetsReceived;
                 }
             }
-            System.out.print("SUCCESS. Got all 29 packets!! \n");
+            System.out.print("SUCCESS. Got all 29 packets!!! \n");
             // Let these threads remain running - make sure there's no unfinished
             // cleanup or unresolved state that might cause continued activity.
             //efcpConn1.StopReceiveThread();
@@ -235,10 +235,10 @@ public class UdpConnectorTest {
         }
         catch(Exception e)
         {
-            System.out.println("Test4 Error:" + e.getMessage());
+            System.out.println("Test 4 Error:" + e.getMessage());
         }   
 
-        System.out.print("\n\n****TEST  DONE**** \n\n");
+        System.out.print("\n\n****TEST DONE**** \n\n");
     }
  
 }
