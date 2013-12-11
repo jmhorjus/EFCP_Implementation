@@ -179,7 +179,7 @@ public class UdpConnectorTest {
                     );
             efcpConn2.SetPeerAddress(InetAddress.getLocalHost(), 1188);
             
-            for (int ii = 0; ii<20; ii++)
+            for (int ii = 0; ii<80; ii++)
             {
                 System.out.print("Test4 Process Send "+ ii +".\n");
                 efcpConn1.Send("Test4_Packet_"+ii+".");
@@ -198,7 +198,7 @@ public class UdpConnectorTest {
             /// First receive may not have been able to pick up all packets (not yet arrived)
             try {Thread.sleep(1000);} catch(InterruptedException ex) {}
             int receivesTried = 1;
-            while(packetsReceived<19)
+            while(packetsReceived<79)
             {
                 System.out.print("Test 4 Process Receive "+ ++receivesTried +": Should get only in-order packets.\n");
                 dataPacketsReceived = efcpConn2.Receive(1000);
@@ -210,20 +210,20 @@ public class UdpConnectorTest {
             }
             
             // Try some more. 
-            for (int ii = 20; ii<30; ii++)
+            for (int ii = 80; ii<160; ii++)
             {
                 System.out.print("Test4 Process Send "+ ii +".\n");
                 efcpConn1.Send("Test4_Packet_"+ii);
             }
-            while(packetsReceived<29)
+            while(packetsReceived<159)
             {
                 System.out.print("Test 4 Process Receive "+ ++receivesTried +": Should get only in-order packets.\n");
                 dataPacketsReceived = efcpConn2.Receive(1000);
                 for(byte[] data : dataPacketsReceived)
                 {
-                    System.out.print("->Test 4 Process Receive "+ receivesTried 
-                            +", packet " + packetsReceived 
-                            +" contains " + new String(data) + "\n");
+                    System.out.print("->Test 4 Process Receive " + receivesTried 
+                            + ", packet " + packetsReceived 
+                            + " contains " + new String(data) + "\n");
                     ++packetsReceived;
                 }
             }

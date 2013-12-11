@@ -7,8 +7,10 @@ package UDPConnector;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -60,8 +62,16 @@ public class EfcpConnector implements ConnectorInterface
         // Check the window - do we have room or "credit" to send this packet?
         if (m_senderNextSequenceNumber >= m_senderRightWindowEdge)
         {
-            System.out.print("Efcp Send: Cannot send; send window exhausted.\n");
-            return false;
+            if(m_senderClosedWindowQueue.size() >= m_policyInfo.ClosedWindowQueueMaxSize)
+            {
+                System.out.print("Efcp Send: Cannot send; send window exhausted and backup queue full.\n");
+                return false;
+            }
+            
+            m_senderClosedWindowQueue.add(sendBuffer);
+            System.out.print("Efcp Send: Send window closed: - put on waiting queue. waiting packets=" 
+                    + m_senderClosedWindowQueue.size() + ".\n");
+            return true;
         }
         
         // Assuming we have a green light to send, do the following:
@@ -81,12 +91,15 @@ public class EfcpConnector implements ConnectorInterface
                 ); 
         
         // 2.) Shedule retransmission.
+        RetransmitEvent retransmitEvent = this.new RetransmitEvent(packetToSend);
         ScheduledFuture retransTaskHandle = s_timedTaskExecutor.scheduleAtFixedRate(
-                this.new RetransmitEvent(packetToSend), // Runnable task
+                retransmitEvent, // Runnable task
                 m_policyInfo.RetransmitDelayInMs, // int initialDelay
                 m_policyInfo.RetransmitDelayInMs, // int period
                 TimeUnit.MILLISECONDS // TimeUnit 
                 );
+        retransmitEvent.SetSelfCancelHandle(retransTaskHandle);
+        
         // 3.) Put the retransTaskHandle into the retransmission queue, so the 
         //  retransmit task can be canceled when an ack is received.
         this.m_senderRetransmitQueue.put(packetToSend.getSeqNum(), retransTaskHandle);
@@ -118,6 +131,8 @@ public class EfcpConnector implements ConnectorInterface
     
     /// Variables related to sender state.
     Map<Integer, ScheduledFuture> m_senderRetransmitQueue = new HashMap<>();
+    Queue<byte[]> m_senderClosedWindowQueue = new LinkedList<>();
+    
     int m_senderLastPacketAcked = -1;
     int m_senderNextSequenceNumber = 0; // initial test value
     int m_senderRightWindowEdge = 0; // initial test value
@@ -158,19 +173,27 @@ public class EfcpConnector implements ConnectorInterface
             m_packetToRetransmit = packetToTransmit;
         }
         
+        ScheduledFuture m_selfCancelHandle;
+        void SetSelfCancelHandle(ScheduledFuture handle)
+        {
+            m_selfCancelHandle = handle;
+        }
+        
         @Override 
         public void run()
         {
             // Just send it - most of the accounting is only done once.
             try {
                 if(++m_timesRestransmitted > m_policyInfo.RetransmitMaxTimes){
-                    throw new Exception("Failed to deliver packet after "
+                    throw new Exception("Failed to deliver packet "
+                            +m_packetToRetransmit.getSeqNum()+" after "
                             +m_policyInfo.RetransmitMaxTimes+" tries!");
                 }
                 m_innerConnection.Send(m_packetToRetransmit.toBytes());
             }
             catch(Exception ex) { 
                 System.out.print("RetransmitEvent exception:" + ex.getMessage() + "\n"); 
+                m_selfCancelHandle.cancel(false);
             }
         }
     }
@@ -293,10 +316,10 @@ public class EfcpConnector implements ConnectorInterface
                     (short)0, //short destAddr 
                     (short)0, //short srcAddr
                     (short)0, //short destCEPid
-                    (short)0, //short srcCEPid, 
-                    (byte)0,  //byte qosid, 
-                    pduType,  //byte pdu_type, 
-                    (byte)0,  //byte flags, 
+                    (short)0, //short srcCEPid
+                    (byte)0,  //byte qosid
+                    pduType,  //byte pdu_type
+                    (byte)0,  //byte flags
                     (int)0,   //int seqNum - control packets not yet using this.
                     "CTRL".getBytes() //byte[] payload
                     ); 
@@ -349,6 +372,16 @@ public class EfcpConnector implements ConnectorInterface
             
                 // Rate based control: 
             }
+            
+            //2.) If there are packet waiting on the closed window queue, 
+            // immediately send as many of them as the new window allows.
+            while(!m_senderClosedWindowQueue.isEmpty() &&
+                    m_senderRightWindowEdge > m_senderNextSequenceNumber)
+            {
+                try { Send(m_senderClosedWindowQueue.remove()); }
+                catch(Exception ex) { System.out.print("Exception Sending: "+ex.getMessage()+"\n"); }
+            }
+            
         }
         
     }
