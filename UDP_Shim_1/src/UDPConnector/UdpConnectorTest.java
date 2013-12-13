@@ -257,14 +257,14 @@ public class UdpConnectorTest {
             EfcpConnectorManager efcpMgr = new EfcpConnectorManager();
             
             int conn1 = efcpMgr.AllocateFlow(
-                    1189, 
                     1190, 
+                    1191, 
                     InetAddress.getLocalHost(), 
                     true, 
                     true);
             int conn2 = efcpMgr.AllocateFlow(
+                    1191, 
                     1190, 
-                    1189, 
                     InetAddress.getLocalHost(), 
                     true, 
                     true);
