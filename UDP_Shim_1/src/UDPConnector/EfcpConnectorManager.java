@@ -64,7 +64,8 @@ public class EfcpConnectorManager {
         try{
             return conn.Send(data);
         }
-        catch(Exception e){
+        catch(Exception ex){
+            System.out.print("ConnectionManager Send: Exception: " + ex.getMessage());
             return false;
         }
     }
@@ -74,8 +75,8 @@ public class EfcpConnectorManager {
         try{
             return conn.Send(data);
         }
-        catch(Exception e){
-            System.out.print("ConnectionManager Send: Exception: " + e.getMessage());
+        catch(Exception ex){
+            System.out.print("ConnectionManager Send: Exception: " + ex.getMessage());
             return false;
         }
     }

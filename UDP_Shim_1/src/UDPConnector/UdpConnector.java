@@ -137,14 +137,17 @@ public class UdpConnector implements ConnectorInterface
                     
                     // If we have a notifyOnReceive set, then call notify and 
                     // reset the notify pointer to null.
-                    if(!m_notifyOnReceive.isEmpty())
+                    synchronized(m_notifyOnReceive)
                     {
-                        //System.out.print("ReceiverThreadTask: Start Notify  Loop\n");
-                        for(ConnectorInterface.ReceiveNotifyInterface tempNotifyPtr : m_notifyOnReceive)
+                        if(!m_notifyOnReceive.isEmpty())
                         {
-                            //System.out.print("ReceiverThreadTask: Notify client of receive event.\n");
-                            m_notifyOnReceive.remove(tempNotifyPtr);
-                            tempNotifyPtr.Notify(UdpConnector.this);
+                            //System.out.print("ReceiverThreadTask: Start Notify  Loop\n");
+                            for(ConnectorInterface.ReceiveNotifyInterface tempNotifyPtr : m_notifyOnReceive)
+                            {
+                                //System.out.print("ReceiverThreadTask: Notify client of receive event.\n");
+                                m_notifyOnReceive.remove(tempNotifyPtr);
+                                tempNotifyPtr.Notify(UdpConnector.this);
+                            }
                         }
                     }
                 }
@@ -152,8 +155,10 @@ public class UdpConnector implements ConnectorInterface
             }
             catch (Exception ex)
             {
-                System.out.print("ReceiverThreadTask: Exception caught:\"" + ex.getMessage() + "\"\n");
+                System.out.print("***ReceiverThreadTask***: Exception caught:\"" + ex.getMessage() + "\"\n");
                 exceptionCaught = true;
+                // make sure the connection object knows its receive thread is no longer valid.
+                UdpConnector.this.m_receiverThread = null; // 
             }
         }
     }
@@ -183,7 +188,11 @@ public class UdpConnector implements ConnectorInterface
     public boolean AddReceiveNotify(ReceiveNotifyInterface notifyMe)
     {
         //System.out.print("UdpConnector.AddReceiveNotify: Enter.\n");
-        return m_notifyOnReceive.add(notifyMe);
+        boolean retVal = false;
+        synchronized(m_notifyOnReceive){         
+            retVal = m_notifyOnReceive.add(notifyMe);
+        }
+        return retVal;
     }
     
     /// Non-blocking receive.
