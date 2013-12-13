@@ -6,6 +6,7 @@ package UDPConnector;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -56,11 +57,43 @@ public class EfcpConnector implements ConnectorInterface
     {
         return Send(sendString.getBytes());
     }
+    
+    protected boolean IsRateBasedFlowControlWindowOpen(){
+        Date now = new Date();
+        if (!m_policyInfo.RateFlowControlEnabled){
+            return true;
+        }
+        if(now.getTime() > m_senderRateCurrentPeriodStartTime.getTime() + m_policyInfo.RateDefaultPeriodInMs){
+            return true;
+        }
+        if(m_senderSendsSoFarThisPeriod < m_policyInfo.RateDefaultPaketsPerPeriod) {
+            return true;
+        }
+        System.out.print("Efcp: Rate based flow control engaged to close window.\n");
+        return false;
+    }
+    
+    protected void RateBasedFlowSend(){
+        if (!m_policyInfo.RateFlowControlEnabled){
+            return;
+        }
+        Date now = new Date();
+        if(now.getTime() > m_senderRateCurrentPeriodStartTime.getTime() + m_policyInfo.RateDefaultPeriodInMs){
+            this.m_senderRateCurrentPeriodStartTime = now;
+            m_senderSendsSoFarThisPeriod = 0;
+             System.out.print("Efcp: Rate based flow control: new period started.");
+        }
+        ++m_senderSendsSoFarThisPeriod;
+    }
+    
     @Override
     public boolean Send(byte[] sendBuffer) throws Exception
-    {
+    {  synchronized(this){
+        
         // Check the window - do we have room or "credit" to send this packet?
-        if (m_senderNextSequenceNumber >= m_senderRightWindowEdge)
+        if ((m_policyInfo.WindowFlowControlEnabled &&
+            m_senderNextSequenceNumber >= m_senderRightWindowEdge) ||
+            (!this.IsRateBasedFlowControlWindowOpen()))
         {
             if(m_senderClosedWindowQueue.size() >= m_policyInfo.ClosedWindowQueueMaxSize)
             {
@@ -69,8 +102,8 @@ public class EfcpConnector implements ConnectorInterface
             }
             
             m_senderClosedWindowQueue.add(sendBuffer);
-            System.out.print("Efcp Send: Send window closed: - put on waiting queue. waiting packets=" 
-                    + m_senderClosedWindowQueue.size() + ".\n");
+            System.out.print("Efcp Send: Send window closed: waiting packets=" 
+                    + m_senderClosedWindowQueue.size() + " Buffer="+new String(sendBuffer)+".\n");
             return true;
         }
         
@@ -102,11 +135,14 @@ public class EfcpConnector implements ConnectorInterface
         
         // 3.) Put the retransTaskHandle into the retransmission queue, so the 
         //  retransmit task can be canceled when an ack is received.
-        this.m_senderRetransmitQueue.put(packetToSend.getSeqNum(), retransTaskHandle);
+        m_senderRetransmitQueue.put(packetToSend.getSeqNum(), retransTaskHandle);
 
-        // 4.) Send it!  Yay!     
+        // 4.) Update rate based flow comtrol.
+        RateBasedFlowSend();
+        
+        // 5.) Send it!  Yay!     
         return m_innerConnection.Send(packetToSend.toBytes());
-    }
+    }}
     @Override
     public boolean AddReceiveNotify(ConnectorInterface.ReceiveNotifyInterface notifyMe)
     {
@@ -132,7 +168,8 @@ public class EfcpConnector implements ConnectorInterface
     /// Variables related to sender state.
     Map<Integer, ScheduledFuture> m_senderRetransmitQueue = new HashMap<>();
     Queue<byte[]> m_senderClosedWindowQueue = new LinkedList<>();
-    
+    Date m_senderRateCurrentPeriodStartTime = new Date(0);
+    int m_senderSendsSoFarThisPeriod = 0;
     int m_senderLastPacketAcked = -1;
     int m_senderNextSequenceNumber = 0; // initial test value
     int m_senderRightWindowEdge = 0; // initial test value
@@ -183,12 +220,15 @@ public class EfcpConnector implements ConnectorInterface
         public void run()
         {
             // Just send it - most of the accounting is only done once.
+            // The exception is rate based flow control, which we still need to
+            // look out for...            
             try {
                 if(++m_timesRestransmitted > m_policyInfo.RetransmitMaxTimes){
                     throw new Exception("Failed to deliver packet "
                             +m_packetToRetransmit.getSeqNum()+" after "
                             +m_policyInfo.RetransmitMaxTimes+" tries!");
                 }
+                EfcpConnector.this.RateBasedFlowSend();
                 m_innerConnection.Send(m_packetToRetransmit.toBytes());
             }
             catch(Exception ex) { 
@@ -370,13 +410,19 @@ public class EfcpConnector implements ConnectorInterface
                 // Set the new right window edge.
                 m_senderRightWindowEdge = packet.NewRightWindowEdge;
             
-                // Rate based control: 
+                // Rate based control:
+                if(m_policyInfo.RateFlowControlEnabled){
+                    m_policyInfo.RateDefaultPeriodInMs = packet.NewDataPeriodInMs;
+                    m_policyInfo.RateDefaultPaketsPerPeriod = packet.NewDataRate;
+                }
+                    
             }
             
             //2.) If there are packet waiting on the closed window queue, 
             // immediately send as many of them as the new window allows.
             while(!m_senderClosedWindowQueue.isEmpty() &&
-                    m_senderRightWindowEdge > m_senderNextSequenceNumber)
+                    m_senderRightWindowEdge > m_senderNextSequenceNumber &&
+                    IsRateBasedFlowControlWindowOpen())
             {
                 try { Send(m_senderClosedWindowQueue.remove()); }
                 catch(Exception ex) { System.out.print("Exception Sending: "+ex.getMessage()+"\n"); }

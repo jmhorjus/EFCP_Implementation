@@ -4,8 +4,13 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/C:/Users/Jan/Documents/GitHub/EFCP_Implementation/UDP_Shim_1/src/UDPConnector/ConnectionShaper.java</file>
+            <file>file:/C:/Users/Jan/Documents/GitHub/EFCP_Implementation/UDP_Shim_1/src/UDPConnector/DtcpPacket.java</file>
+            <file>file:/C:/Users/Jan/Documents/GitHub/EFCP_Implementation/UDP_Shim_1/src/UDPConnector/EfcpConnectorManager.java</file>
+            <file>file:/C:/Users/Jan/Documents/GitHub/EFCP_Implementation/UDP_Shim_1/src/UDPConnector/UdpConnectionManager.java</file>
+            <file>file:/C:/Users/Jan/Documents/GitHub/EFCP_Implementation/UDP_Shim_1/src/UDPConnector/EfcpPolicyInfo.java</file>
             <file>file:/C:/Users/Jan/Documents/GitHub/EFCP_Implementation/UDP_Shim_1/src/UDPConnector/UdpConnector.java</file>
-            <file>file:/C:/Users/Jan/Documents/GitHub/EFCP_Implementation/UDP_Shim_1/src/UDPConnector/DtpPacket.java</file>
+            <file>file:/C:/Users/Jan/Documents/GitHub/EFCP_Implementation/UDP_Shim_1/src/UDPConnector/EfcpConnector.java</file>
+            <file>file:/C:/Users/Jan/Documents/GitHub/EFCP_Implementation/UDP_Shim_1/src/UDPConnector/UdpConnectorTest.java</file>
         </group>
     </open-files>
 </project-private>

@@ -14,7 +14,7 @@ public class EfcpPolicyInfo {
     /// This class to be full of a ton of flags and numbers.
     /// It could probably just be a struct.
     public boolean RetransmitEnabled = true;         
-    public int RetransmitDelayInMs = 300;
+    public int RetransmitDelayInMs = 1000;
     public int RetransmitMaxTimes = 15;
     
     public int AckDelayInMs = 10;
@@ -23,11 +23,11 @@ public class EfcpPolicyInfo {
     public boolean WindowFlowControlEnabled = true;
     public int WindowDefaultInitialSize = 20;
 
-    public int ClosedWindowQueueMaxSize = 100;
+    public int ClosedWindowQueueMaxSize = 200;
     
     
-    public boolean RateFlowControlEnabled = false;
-    public short RateDefaultPaketsPerPeriod = 200;
+    public boolean RateFlowControlEnabled = true;
+    public short RateDefaultPaketsPerPeriod = 10;
     public short RateDefaultPeriodInMs = 2000;
     
 }
