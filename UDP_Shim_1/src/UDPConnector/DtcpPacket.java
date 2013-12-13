@@ -17,7 +17,7 @@ import org.apache.commons.logging.LogFactory;
 /**
  * This is an implementation of DTP message, which defines the header format
  * @author Yuefeng Wang and Flavio Esposito. Computer Science Department, Boston University
- *   
+ * Adapted by Jan Horjus for use in this project.
  */
 public class DtcpPacket {
 

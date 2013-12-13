@@ -1,6 +1,9 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/* @copyright 2013 Computer Science Department, Recursive InterNetworking Architecture (RINA) laboratory, Boston University. 
+ * All rights reserved. Permission to use, copy, modify, and distribute this software and its documentation
+ * for any purpose and without fee is hereby granted, provided that the above copyright notice appear in all 
+ * copies and that both the copyright notice and this permission notice appear in supporting documentation. 
+ * The RINA laboratory of the Computer Science Department at Boston University makes no 
+ * representations about the suitability of this software for any purpose.
  */
 package UDPConnector;
 
@@ -9,7 +12,7 @@ import java.net.*;
 import java.util.*;
 /**
  *
- * @author jhorjus
+ * @author Jan Horjus
  */
 public class UdpConnectorTest {
 
@@ -160,9 +163,9 @@ public class UdpConnectorTest {
             EfcpConnector efcpConn1 = new EfcpConnector( 
                     new ConnectionShaper(
                         new UdpConnector(1188),
-                        100, // 600ms min delay
-                        20, // up to 300ms additional random delay (jitter).
-                        1000 // 33% packet loss
+                        100, // min delay
+                        20, // additional random delay (jitter).
+                        1000 // 10% packet loss
                     ),
                     new EfcpPolicyInfo()
                     );
@@ -171,15 +174,15 @@ public class UdpConnectorTest {
             EfcpConnector efcpConn2 = new EfcpConnector( 
                     new ConnectionShaper(
                         new UdpConnector(1189),
-                        100, // 600ms min delay
-                        20, // up to 300ms additional random delay (jitter).
-                        1000 // 33% packet loss
+                        100, // min delay
+                        20, // additional random delay (jitter).
+                        1000 // 10% packet loss
                     ),
                     new EfcpPolicyInfo()
                     );
             efcpConn2.SetPeerAddress(InetAddress.getLocalHost(), 1188);
             
-            for (int ii = 0; ii<80; ii++)
+            for (int ii = 0; ii<100; ii++)
             {
                 System.out.print("Test4 Process Send "+ ii +".\n");
                 efcpConn1.Send("Test4_Packet_"+ii+".");
@@ -198,7 +201,7 @@ public class UdpConnectorTest {
             /// First receive may not have been able to pick up all packets (not yet arrived)
             try {Thread.sleep(1000);} catch(InterruptedException ex) {}
             int receivesTried = 1;
-            while(packetsReceived<79)
+            while(packetsReceived<99)
             {
                 System.out.print("Test 4 Process Receive "+ ++receivesTried +": Should get only in-order packets.\n");
                 dataPacketsReceived = efcpConn2.Receive(1000);
@@ -210,12 +213,12 @@ public class UdpConnectorTest {
             }
             
             // Try some more. 
-            for (int ii = 80; ii<160; ii++)
+            for (int ii = 100; ii<200; ii++)
             {
                 System.out.print("Test4 Process Send "+ ii +".\n");
                 efcpConn1.Send("Test4_Packet_"+ii);
             }
-            while(packetsReceived<159)
+            while(packetsReceived<199)
             {
                 System.out.print("Test 4 Process Receive "+ ++receivesTried +": Should get only in-order packets.\n");
                 dataPacketsReceived = efcpConn2.Receive(1000);
@@ -227,18 +230,22 @@ public class UdpConnectorTest {
                     ++packetsReceived;
                 }
             }
-            System.out.print("SUCCESS. Got all 29 packets!!! \n");
+            System.out.print("SUCCESS. Got all 160 packets!!! \n");
             // Let these threads remain running - make sure there's no unfinished
             // cleanup or unresolved state that might cause continued activity.
-            //efcpConn1.StopReceiveThread();
-            //efcpConn2.StopReceiveThread();
+            efcpConn1.StopReceiveThread();
+            efcpConn2.StopReceiveThread();
         }
         catch(Exception e)
         {
             System.out.println("Test 4 Error:" + e.getMessage());
         }   
 
-        System.out.print("\n\n****TEST DONE**** \n\n");
+        System.out.print("\n\n****EFCP CONNECTOR TEST DONE**** \n\n");
+        
+        
+        
+        
     }
  
 }
