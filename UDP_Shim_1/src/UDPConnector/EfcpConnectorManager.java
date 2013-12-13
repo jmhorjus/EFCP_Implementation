@@ -80,11 +80,11 @@ public class EfcpConnectorManager {
         }
     }
     
-    public List<byte[]> Receive(int flowHandle) 
+    public List<byte[]> Receive(int flowHandle, int maxBlockTimeInMs) 
     {
         ConnectorInterface conn = m_connMap.get(flowHandle);
         
-        return conn.Receive(0 /*no blocking*/ );
+        return conn.Receive(maxBlockTimeInMs /*no blocking*/ );
     }
     
 

@@ -231,10 +231,11 @@ public class UdpConnectorTest {
                 }
             }
             System.out.print("SUCCESS. Got all 160 packets!!! \n");
+            
             // Let these threads remain running - make sure there's no unfinished
             // cleanup or unresolved state that might cause continued activity.
-            efcpConn1.StopReceiveThread();
-            efcpConn2.StopReceiveThread();
+            //efcpConn1.StopReceiveThread();
+            //efcpConn2.StopReceiveThread();
         }
         catch(Exception e)
         {
@@ -245,6 +246,90 @@ public class UdpConnectorTest {
         
         
         
+        
+        
+//        
+//        //Part 5: Test the Efcp Connector  
+//        try
+//        {     
+//            System.out.println("\n\n\n*** UdpConnectorTest: Section 5 ***");
+//            
+//            EfcpConnectorManager efcpMgr = new EfcpConnectorManager();
+//            
+//            int conn1 = efcpMgr.AllocateFlow(
+//                    1189, 
+//                    1190, 
+//                    InetAddress.getLocalHost(), 
+//                    true, 
+//                    true);
+//            int conn2 = efcpMgr.AllocateFlow(
+//                    1190, 
+//                    1189, 
+//                    InetAddress.getLocalHost(), 
+//                    true, 
+//                    true);
+//            
+//            
+//            for (int ii = 0; ii<100; ii++)
+//            {
+//                System.out.print("Test 5 Process Send "+ ii +".\n");
+//                efcpMgr.Send(conn1, "Test5_Packet_"+ii+".");
+//            }
+//            
+//            int packetsReceived = 0;
+//            
+//            System.out.print("Test 5 Process Receive 1: Shouldn't get anything.\n");
+//            List<byte[]> dataPacketsReceived = efcpMgr.Receive(conn2, 500);
+//            for(byte[] data : dataPacketsReceived)
+//            {
+//                System.out.print("Test 5 Process Receive 1: " + new String(data) + "\n");
+//                ++packetsReceived;
+//            }
+//            
+//            /// First receive may not have been able to pick up all packets (not yet arrived)
+//            try {Thread.sleep(1000);} catch(InterruptedException ex) {}
+//            int receivesTried = 1;
+//            while(packetsReceived<99)
+//            {
+//                System.out.print("Test 5 Process Receive "+ ++receivesTried +": Should get only in-order packets.\n");
+//                dataPacketsReceived = efcpMgr.Receive(conn2, 1000);
+//                for(byte[] data : dataPacketsReceived)
+//                {
+//                    System.out.print("Test 5 Process Receive "+ receivesTried +": " + new String(data) + "\n");
+//                    ++packetsReceived;
+//                }
+//            }
+//            
+//            // Try in the OTHER DIRECTION. 
+//            for (int ii = 100; ii<200; ii++)
+//            {
+//                System.out.print("Test 5 Process Send "+ ii +".\n");
+//                efcpMgr.Send(conn2, "Test5_Packet_"+ii);
+//            }
+//            while(packetsReceived<199)
+//            {
+//                System.out.print("Test 5 Process Receive "+ ++receivesTried +": Should get only in-order packets.\n");
+//                dataPacketsReceived = efcpMgr.Receive(conn1, 1000);
+//                for(byte[] data : dataPacketsReceived)
+//                {
+//                    System.out.print("->Test 5 Process Receive " + receivesTried 
+//                            + ", packet " + packetsReceived 
+//                            + " contains " + new String(data) + "\n");
+//                    ++packetsReceived;
+//                }
+//            }
+//            System.out.print("SUCCESS. Got all 200 packets!!! \n");
+//            
+//            // Let these threads remain running - make sure there's no unfinished
+//            // cleanup or unresolved state that might cause continued activity.
+//            efcpMgr.DeallocateFlow(conn1);
+//            efcpMgr.DeallocateFlow(conn2);
+//
+//        }
+//        catch(Exception e)
+//        {
+//            System.out.println("Test 5 Error:" + e.getMessage());
+//        }   
         
     }
  

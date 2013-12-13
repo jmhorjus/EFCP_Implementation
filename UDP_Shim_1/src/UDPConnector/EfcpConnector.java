@@ -97,7 +97,6 @@ public class EfcpConnector implements ConnectorInterface
                     m_policyInfo.RateDefaultPeriodInMs, // int initialDelay
                     TimeUnit.MILLISECONDS // TimeUnit 
                     );
-
             }
         }
         ++m_senderSendsSoFarThisPeriod;
@@ -480,15 +479,23 @@ public class EfcpConnector implements ConnectorInterface
             {
                 if(m_senderRateCurrentPeriodStartTime == m_scheduleTime)
                 {
-                    m_senderSendsSoFarThisPeriod = 0;
-                    m_senderRateCurrentPeriodStartTime = new Date();
-                    m_scheduleTime = m_senderRateCurrentPeriodStartTime;
                     if(!m_senderClosedWindowQueue.isEmpty())
-                    s_timedTaskExecutor.schedule(
-                        this, // Runnable task 
-                        m_policyInfo.RateDefaultPeriodInMs, // MAY HAVE CHANGED
-                        TimeUnit.MILLISECONDS // TimeUnit 
-                        );
+                    {
+                        m_senderSendsSoFarThisPeriod = 0;
+                        m_senderRateCurrentPeriodStartTime = new Date();
+                        m_scheduleTime = m_senderRateCurrentPeriodStartTime;
+
+                        s_timedTaskExecutor.schedule(
+                            this, // Runnable task 
+                            m_policyInfo.RateDefaultPeriodInMs, // MAY HAVE CHANGED
+                            TimeUnit.MILLISECONDS // TimeUnit 
+                            );
+                    }
+                    else
+                    {
+                        // If this function has executed, the period MUST be expired or reset.
+                        m_senderRateCurrentPeriodStartTime = new Date(0);
+                    }
                 }
             }
             

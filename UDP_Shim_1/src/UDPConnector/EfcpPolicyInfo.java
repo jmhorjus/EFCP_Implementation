@@ -24,13 +24,13 @@ public class EfcpPolicyInfo {
     
     
     public boolean WindowFlowControlEnabled = true;
-    public int WindowDefaultInitialSize = 20;
+    public int WindowDefaultInitialSize = 10;
 
     public int ClosedWindowQueueMaxSize = 200;
     
     
     public boolean RateFlowControlEnabled = true;
-    public short RateDefaultPaketsPerPeriod = 10;
+    public short RateDefaultPaketsPerPeriod = 20;
     public short RateDefaultPeriodInMs = 2000;
     
 }
