@@ -79,9 +79,19 @@ public class EfcpConnector implements ConnectorInterface
         }
         Date now = new Date();
         if(now.getTime() > m_senderRateCurrentPeriodStartTime.getTime() + m_policyInfo.RateDefaultPeriodInMs){
+            
             this.m_senderRateCurrentPeriodStartTime = now;
             m_senderSendsSoFarThisPeriod = 0;
-             System.out.print("Efcp: Rate based flow control: new period started.");
+            System.out.print("Efcp: Rate based flow control: new period started.\n");
+             
+             // Set an event to fire off at the end of this period.
+             RatePeriodExpiredEvent event = this.new RatePeriodExpiredEvent();
+             ScheduledFuture taskHandle = s_timedTaskExecutor.schedule(
+                event, // Runnable task
+                m_policyInfo.RateDefaultPeriodInMs, // int initialDelay
+                TimeUnit.MILLISECONDS // TimeUnit 
+                );
+             
         }
         ++m_senderSendsSoFarThisPeriod;
     }
@@ -228,7 +238,7 @@ public class EfcpConnector implements ConnectorInterface
                             +m_packetToRetransmit.getSeqNum()+" after "
                             +m_policyInfo.RetransmitMaxTimes+" tries!");
                 }
-                EfcpConnector.this.RateBasedFlowSend();
+                RateBasedFlowSend();
                 m_innerConnection.Send(m_packetToRetransmit.toBytes());
             }
             catch(Exception ex) { 
@@ -432,6 +442,30 @@ public class EfcpConnector implements ConnectorInterface
         
     }
 
+    class RatePeriodExpiredEvent implements Runnable 
+    {
+        @Override
+        public void run()
+        {
+            //1.) Reset the rate period data.
+            EfcpConnector.this.m_senderSendsSoFarThisPeriod = 0;
+            EfcpConnector.this.m_senderRateCurrentPeriodStartTime = new Date();
+            s_timedTaskExecutor.schedule(
+                this, // Runnable task
+                m_policyInfo.RateDefaultPeriodInMs, // MAY HAVE CHANGED
+                TimeUnit.MILLISECONDS // TimeUnit 
+                );
+            //2.) If there are packet waiting on the closed window queue, 
+            // immediately send as many of them as the new window allows.
+            while(!m_senderClosedWindowQueue.isEmpty() &&
+                    m_senderRightWindowEdge > m_senderNextSequenceNumber &&
+                    IsRateBasedFlowControlWindowOpen())
+            {
+                try { Send(m_senderClosedWindowQueue.remove()); }
+                catch(Exception ex) { System.out.print("Exception Sending: "+ex.getMessage()+"\n"); }
+            }
+        }
+    }
     
     
 }
