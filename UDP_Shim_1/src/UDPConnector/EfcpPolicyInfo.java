@@ -20,7 +20,7 @@ public class EfcpPolicyInfo {
     public int RetransmitDelayInMs = 1000;
     public int RetransmitMaxTimes = 15;
     
-    public int AckDelayInMs = 10;
+    public int AckDelayInMs = 0;
     
     
     public boolean WindowFlowControlEnabled = true;

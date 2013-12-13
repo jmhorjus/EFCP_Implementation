@@ -230,7 +230,7 @@ public class UdpConnectorTest {
                     ++packetsReceived;
                 }
             }
-            System.out.print("SUCCESS. Got all 160 packets!!! \n");
+            System.out.print("SUCCESS. Got all 200 packets!!! \n");
             
             // Let these threads remain running - make sure there's no unfinished
             // cleanup or unresolved state that might cause continued activity.
