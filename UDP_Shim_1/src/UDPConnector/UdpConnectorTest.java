@@ -161,8 +161,8 @@ public class UdpConnectorTest {
                     new ConnectionShaper(
                         new UdpConnector(1188),
                         100, // 600ms min delay
-                        50, // up to 300ms additional random delay (jitter).
-                        4333 // 33% packet loss
+                        20, // up to 300ms additional random delay (jitter).
+                        1000 // 33% packet loss
                     ),
                     new EfcpPolicyInfo()
                     );
@@ -172,8 +172,8 @@ public class UdpConnectorTest {
                     new ConnectionShaper(
                         new UdpConnector(1189),
                         100, // 600ms min delay
-                        50, // up to 300ms additional random delay (jitter).
-                        4333 // 33% packet loss
+                        20, // up to 300ms additional random delay (jitter).
+                        1000 // 33% packet loss
                     ),
                     new EfcpPolicyInfo()
                     );

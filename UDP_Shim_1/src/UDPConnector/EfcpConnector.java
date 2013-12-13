@@ -87,9 +87,9 @@ public class EfcpConnector implements ConnectorInterface
                 m_senderSendsSoFarThisPeriod = 0;
                 System.out.print("***Efcp: Rate based flow control: new period started.\n");
 
-                 // Set an event to fire off at the end of this period.
-                 RatePeriodExpiredEvent event = this.new RatePeriodExpiredEvent(m_senderRateCurrentPeriodStartTime);
-                 ScheduledFuture taskHandle = s_timedTaskExecutor.schedule(
+                // Set an event to fire off at the end of this period.
+                RatePeriodExpiredEvent event = this.new RatePeriodExpiredEvent(m_senderRateCurrentPeriodStartTime);
+                s_timedTaskExecutor.schedule(
                     event, // Runnable task
                     m_policyInfo.RateDefaultPeriodInMs, // int initialDelay
                     TimeUnit.MILLISECONDS // TimeUnit 
@@ -473,17 +473,19 @@ public class EfcpConnector implements ConnectorInterface
                    + " windowEdge=" + m_senderRightWindowEdge+"\n");
             
             //1.) Reset the rate period data.
-            synchronized(m_senderRateCurrentPeriodStartTime){
+            synchronized(m_senderRateCurrentPeriodStartTime)
+            {
                 if(m_senderRateCurrentPeriodStartTime == m_scheduleTime)
                 {
-            EfcpConnector.this.m_senderSendsSoFarThisPeriod = 0;
-            EfcpConnector.this.m_senderRateCurrentPeriodStartTime = new Date();
-            if(!m_senderClosedWindowQueue.isEmpty())
-            s_timedTaskExecutor.schedule(
-                this, // Runnable task 
-                m_policyInfo.RateDefaultPeriodInMs, // MAY HAVE CHANGED
-                TimeUnit.MILLISECONDS // TimeUnit 
-                );
+                    m_senderSendsSoFarThisPeriod = 0;
+                    m_senderRateCurrentPeriodStartTime = new Date();
+                    m_scheduleTime = m_senderRateCurrentPeriodStartTime;
+                    if(!m_senderClosedWindowQueue.isEmpty())
+                    s_timedTaskExecutor.schedule(
+                        this, // Runnable task 
+                        m_policyInfo.RateDefaultPeriodInMs, // MAY HAVE CHANGED
+                        TimeUnit.MILLISECONDS // TimeUnit 
+                        );
                 }
             }
             
