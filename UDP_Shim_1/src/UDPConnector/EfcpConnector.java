@@ -77,51 +77,38 @@ public class EfcpConnector implements ConnectorInterface
         if (!m_policyInfo.RateFlowControlEnabled){
             return;
         }
-        Date now = new Date();
-        if(now.getTime() > m_senderRateCurrentPeriodStartTime.getTime() + m_policyInfo.RateDefaultPeriodInMs){
-            
-            this.m_senderRateCurrentPeriodStartTime = now;
-            m_senderSendsSoFarThisPeriod = 0;
-            System.out.print("Efcp: Rate based flow control: new period started.\n");
-             
-             // Set an event to fire off at the end of this period.
-             RatePeriodExpiredEvent event = this.new RatePeriodExpiredEvent();
-             ScheduledFuture taskHandle = s_timedTaskExecutor.schedule(
-                event, // Runnable task
-                m_policyInfo.RateDefaultPeriodInMs, // int initialDelay
-                TimeUnit.MILLISECONDS // TimeUnit 
-                );
-             
+        synchronized(m_senderRateCurrentPeriodStartTime)
+        {
+            Date now = new Date();
+            if(now.getTime() > m_senderRateCurrentPeriodStartTime.getTime() + m_policyInfo.RateDefaultPeriodInMs)
+            {
+
+                m_senderRateCurrentPeriodStartTime = now;
+                m_senderSendsSoFarThisPeriod = 0;
+                System.out.print("***Efcp: Rate based flow control: new period started.\n");
+
+                 // Set an event to fire off at the end of this period.
+                 RatePeriodExpiredEvent event = this.new RatePeriodExpiredEvent(m_senderRateCurrentPeriodStartTime);
+                 ScheduledFuture taskHandle = s_timedTaskExecutor.schedule(
+                    event, // Runnable task
+                    m_policyInfo.RateDefaultPeriodInMs, // int initialDelay
+                    TimeUnit.MILLISECONDS // TimeUnit 
+                    );
+
+            }
         }
         ++m_senderSendsSoFarThisPeriod;
     }
     
     @Override
     public boolean Send(byte[] sendBuffer) throws Exception
-    {  synchronized(this){
-        
-        // Check the window - do we have room or "credit" to send this packet?
-        if ((m_policyInfo.WindowFlowControlEnabled &&
-            m_senderNextSequenceNumber >= m_senderRightWindowEdge) ||
-            (!this.IsRateBasedFlowControlWindowOpen()))
-        {
-            if(m_senderClosedWindowQueue.size() >= m_policyInfo.ClosedWindowQueueMaxSize)
-            {
-                System.out.print("Efcp Send: Cannot send; send window exhausted and backup queue full.\n");
-                return false;
-            }
-            
-            m_senderClosedWindowQueue.add(sendBuffer);
-            System.out.print("Efcp Send: Send window closed: waiting packets=" 
-                    + m_senderClosedWindowQueue.size() + " Buffer="+new String(sendBuffer)+".\n");
-            return true;
-        }
-        
-        // Assuming we have a green light to send, do the following:
+    {  
+        DtcpPacket packetToSend;
+        synchronized(this){
         
         // 1.) Wrap the data up in the packet.  Use a packet with DTP and EFCP fields.
         //  This means giving it a sequence number, etc. 
-        DtcpPacket packetToSend = new DtcpPacket(
+        packetToSend = new DtcpPacket(
                 (short)0, //short destAddr 
                 (short)0, //short srcAddr
                 (short)0, //short destCEPid
@@ -132,7 +119,35 @@ public class EfcpConnector implements ConnectorInterface
                 m_senderNextSequenceNumber++, //int seqNum
                 sendBuffer //byte[] payload
                 ); 
+        } 
+        return SendPacket(packetToSend);
+    }
         
+    boolean SendPacket(DtcpPacket packetToSend) throws Exception
+    { synchronized (this){
+        
+        System.out.print("Efcp:   SendPacket: Enter. \n");
+        // Check the window - do we have room or "credit" to send this packet?
+        if ((m_policyInfo.WindowFlowControlEnabled &&
+            packetToSend.getSeqNum() >= m_senderRightWindowEdge) ||
+            (!this.IsRateBasedFlowControlWindowOpen()))
+        {
+            if(m_senderClosedWindowQueue.size() >= m_policyInfo.ClosedWindowQueueMaxSize)
+            {
+                System.out.print("Efcp Send: Cannot send; send window exhausted and backup queue full.\n");
+                return false;
+            }
+            
+            m_senderClosedWindowQueue.add(packetToSend);
+            System.out.print("Efcp Send: Send window closed: waiting packets="
+                    + m_senderClosedWindowQueue.size() 
+                    + " Buffer="+new String(packetToSend.getPayload())+".\n");
+            return true;
+        }
+        
+        // Assuming we have a green light to send, do the following:
+        
+    
         // 2.) Shedule retransmission.
         RetransmitEvent retransmitEvent = this.new RetransmitEvent(packetToSend);
         ScheduledFuture retransTaskHandle = s_timedTaskExecutor.scheduleAtFixedRate(
@@ -177,7 +192,7 @@ public class EfcpConnector implements ConnectorInterface
     
     /// Variables related to sender state.
     Map<Integer, ScheduledFuture> m_senderRetransmitQueue = new HashMap<>();
-    Queue<byte[]> m_senderClosedWindowQueue = new LinkedList<>();
+    Queue<DtcpPacket> m_senderClosedWindowQueue = new LinkedList<>();
     Date m_senderRateCurrentPeriodStartTime = new Date(0);
     int m_senderSendsSoFarThisPeriod = 0;
     int m_senderLastPacketAcked = -1;
@@ -431,10 +446,10 @@ public class EfcpConnector implements ConnectorInterface
             //2.) If there are packet waiting on the closed window queue, 
             // immediately send as many of them as the new window allows.
             while(!m_senderClosedWindowQueue.isEmpty() &&
-                    m_senderRightWindowEdge > m_senderNextSequenceNumber &&
+                    m_senderRightWindowEdge > m_senderClosedWindowQueue.peek().getSeqNum() &&
                     IsRateBasedFlowControlWindowOpen())
             {
-                try { Send(m_senderClosedWindowQueue.remove()); }
+                try { SendPacket(m_senderClosedWindowQueue.remove()); }
                 catch(Exception ex) { System.out.print("Exception Sending: "+ex.getMessage()+"\n"); }
             }
             
@@ -444,24 +459,41 @@ public class EfcpConnector implements ConnectorInterface
 
     class RatePeriodExpiredEvent implements Runnable 
     {
+        Date m_scheduleTime;
+        RatePeriodExpiredEvent(Date now)
+        {
+            m_scheduleTime = now;
+        }
+        
         @Override
         public void run()
         {
+            System.out.print("***Efcp: Rate based flow control period expired. Packets Waiting="
+                   + m_senderClosedWindowQueue.size() 
+                   + " windowEdge=" + m_senderRightWindowEdge+"\n");
+            
             //1.) Reset the rate period data.
+            synchronized(m_senderRateCurrentPeriodStartTime){
+                if(m_senderRateCurrentPeriodStartTime == m_scheduleTime)
+                {
             EfcpConnector.this.m_senderSendsSoFarThisPeriod = 0;
             EfcpConnector.this.m_senderRateCurrentPeriodStartTime = new Date();
+            if(!m_senderClosedWindowQueue.isEmpty())
             s_timedTaskExecutor.schedule(
-                this, // Runnable task
+                this, // Runnable task 
                 m_policyInfo.RateDefaultPeriodInMs, // MAY HAVE CHANGED
                 TimeUnit.MILLISECONDS // TimeUnit 
                 );
+                }
+            }
+            
             //2.) If there are packet waiting on the closed window queue, 
             // immediately send as many of them as the new window allows.
             while(!m_senderClosedWindowQueue.isEmpty() &&
-                    m_senderRightWindowEdge > m_senderNextSequenceNumber &&
+                    m_senderRightWindowEdge > m_senderClosedWindowQueue.peek().getSeqNum() &&
                     IsRateBasedFlowControlWindowOpen())
             {
-                try { Send(m_senderClosedWindowQueue.remove()); }
+                try { SendPacket(m_senderClosedWindowQueue.remove()); }
                 catch(Exception ex) { System.out.print("Exception Sending: "+ex.getMessage()+"\n"); }
             }
         }
